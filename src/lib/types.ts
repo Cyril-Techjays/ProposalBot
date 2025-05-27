@@ -109,6 +109,29 @@ const ProjectTimelineSectionSchema = z.object({
 });
 export type ProjectTimelineSectionData = z.infer<typeof ProjectTimelineSectionSchema>;
 
+// Types for Team & Resources
+const RoleAllocationSchema = z.object({
+  roleName: z.string().describe("Name of the team role (e.g., Frontend Developer)."),
+  totalHours: z.string().describe("Estimated total hours for this role for the project (e.g., '170h')."),
+  duration: z.string().describe("Estimated duration this role will be involved (e.g., '5 weeks')."),
+  utilization: z.string().describe("Estimated utilization percentage for this role (e.g., '85%').")
+});
+export type RoleAllocation = z.infer<typeof RoleAllocationSchema>;
+
+const RoleResponsibilitiesSchema = z.object({
+  roleName: z.string().describe("Name of the team role (e.g., Frontend Developer)."),
+  responsibilities: z.array(z.string()).describe("List of key responsibilities for this role (2-5 items).")
+});
+export type RoleResponsibilities = z.infer<typeof RoleResponsibilitiesSchema>;
+
+const TeamAndResourcesSchema = z.object({
+  teamAllocationTitle: z.string().default("Team Allocation & Resource Planning").describe("Title for the team allocation subsection."),
+  teamAllocations: z.array(RoleAllocationSchema).describe("List of resource allocations per role. IMPORTANT: Do NOT include 'Hourly Rate' or 'Total Cost' in the output for any role."),
+  teamStructureTitle: z.string().default("Team Structure & Responsibilities").describe("Title for the team structure subsection."),
+  teamStructure: z.array(RoleResponsibilitiesSchema).describe("List of responsibilities per role.")
+});
+export type TeamAndResources = z.infer<typeof TeamAndResourcesSchema>;
+
 
 export const StructuredProposalSchema = z.object({
   proposalTitle: z.string().describe("Overall title for the proposal, e.g., 'Cyril - Comprehensive Proposal'."),
@@ -121,11 +144,9 @@ export const StructuredProposalSchema = z.object({
     highlights: z.array(HighlightItemSchema).describe("Array of key highlight cards: Timeline, Total Hours, Team Size. Should be 3 highlights based on prompt."),
     projectGoals: z.array(ProjectGoalSchema).describe("A list of key project goals and objectives. Prompt asks for 2-5."),
   }),
-  requirementsAnalysis: RequirementsAnalysisSchema, // Prompt asks for 3-7 items in arrays
-  featureBreakdown: FeatureBreakdownSchema, // Prompt asks for 2-4 features, and specific counts for sub-arrays
-  projectTimelineSection: ProjectTimelineSectionSchema, // Prompt asks for 3-5 phases
-  teamAndResources: z.object({
-    content: z.string().describe("Detailed content for Team & Resources section (at least 2-3 paragraphs).")
-  }),
+  requirementsAnalysis: RequirementsAnalysisSchema,
+  featureBreakdown: FeatureBreakdownSchema, 
+  projectTimelineSection: ProjectTimelineSectionSchema,
+  teamAndResources: TeamAndResourcesSchema,
 });
 export type StructuredProposal = z.infer<typeof StructuredProposalSchema>;

@@ -8,8 +8,9 @@ import { ProposalTabs } from './ProposalTabs';
 import { ExecutiveSummarySection } from './ExecutiveSummarySection';
 import { RequirementsAnalysisSection } from './RequirementsAnalysisSection';
 import { FeatureBreakdownSection } from './FeatureBreakdownSection'; 
-import { ProjectTimelineSection } from './ProjectTimelineSection'; // Import new component
-import { GenericSection } from './GenericSection';
+import { ProjectTimelineSection } from './ProjectTimelineSection';
+import { TeamAndResourcesSection } from './TeamAndResourcesSection'; // Import new component
+import { GenericSection } from './GenericSection'; // Keep for potential fallback or future simple sections
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AIChatModal } from './AIChatModal'; 
 import { useToast } from '@/hooks/use-toast';
@@ -50,9 +51,9 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'featureBreakdown':
         return JSON.stringify(currentProposal.featureBreakdown);
       case 'projectTimelineSection':
-        return JSON.stringify(currentProposal.projectTimelineSection); // Stringify the object
+        return JSON.stringify(currentProposal.projectTimelineSection);
       case 'teamAndResources':
-        return currentProposal.teamAndResources.content;
+        return JSON.stringify(currentProposal.teamAndResources); // Stringify the object
       default:
         const exhaustiveCheck: never = activeTab; 
         return "";
@@ -75,10 +76,10 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
           updatedProposal.featureBreakdown = JSON.parse(newContentString);
           break;
         case 'projectTimelineSection':
-          updatedProposal.projectTimelineSection = JSON.parse(newContentString); // Parse the JSON string
+          updatedProposal.projectTimelineSection = JSON.parse(newContentString);
           break;
         case 'teamAndResources':
-          updatedProposal.teamAndResources = { ...updatedProposal.teamAndResources, content: newContentString };
+          updatedProposal.teamAndResources = JSON.parse(newContentString); // Parse the JSON string
           break;
         default:
           const exhaustiveCheck: never = sectionKey; 
@@ -104,11 +105,13 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'featureBreakdown':
         return <FeatureBreakdownSection data={currentProposal.featureBreakdown} />;
       case 'projectTimelineSection':
-        return <ProjectTimelineSection data={currentProposal.projectTimelineSection} />; // Use new component
+        return <ProjectTimelineSection data={currentProposal.projectTimelineSection} />;
       case 'teamAndResources':
-        return <GenericSection title="Team & Resources" content={currentProposal.teamAndResources.content} />;
+        return <TeamAndResourcesSection data={currentProposal.teamAndResources} />; // Use new component
       default:
-        return null;
+        const exhaustiveCheck: never = activeTab;
+        // Fallback for safety, though all keys should be handled
+        return <GenericSection title="Content Area" content={`Content for section ${exhaustiveCheck} will appear here.`} />;
     }
   };
 
@@ -150,4 +153,3 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
     </div>
   );
 }
-

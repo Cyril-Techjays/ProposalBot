@@ -47,6 +47,7 @@ Basic Requirements: {{{basicRequirements}}}
 Please provide the output in the following JSON structure. Ensure all fields are populated accurately and professionally.
 **IMPORTANT: DO NOT include any price or cost estimations in any part of the featureBreakdown section (totalHours, resourceAllocation, etc.). Only provide time estimates in hours (e.g., "72 hours", "36h").**
 **For the projectTimelineSection, the 'percentageOfProject' field should reflect the estimated percentage of total project effort or duration, NOT monetary cost.**
+**For the teamAndResources section, under 'teamAllocations', DO NOT include 'Hourly Rate' or 'Total Cost' for any role.**
 
 **Output Structure Guidance:**
 
@@ -59,7 +60,7 @@ Please provide the output in the following JSON structure. Ensure all fields are
     *   One for an estimated budget (e.g., "$10,000 - $15,000", icon: "DollarSign"). Infer a reasonable budget range based on requirements and team.
 5.  **executiveSummary**:
     *   **summaryText**: A concise overview (50-100 words) of the project, its purpose, and key outcomes.
-    *   **highlights**: Exactly 3 highlight items. Provide a \`colorName\` hint for each.
+    *   **highlights**: Exactly 3 highlight items:
         *   Item 1: Label "Timeline", Value (estimated timeline, e.g., "2-3 months"), colorName: "green".
         *   Item 2: Label "Total Hours", Value (estimated total hours, e.g., "150-200h"), colorName: "purple".
         *   Item 3: Label "Team Size", Value (number of team members, e.g., "2 members"), colorName: "orange".
@@ -90,7 +91,17 @@ Please provide the output in the following JSON structure. Ensure all fields are
         *   **percentageOfProject**: (Optional) An estimated percentage of the total project effort or duration this phase represents (e.g., "15% of project", "20% of project effort"). **This is NOT about cost.**
         *   **keyDeliverables**: A list of 2-5 key deliverables for this phase (e.g., "Requirements Document", "UI/UX Mockups", "Deployed MVP").
 9.  **teamAndResources**:
-    *   **content**: Description of the proposed team and resources (2-3 paragraphs). If \`teamComposition\` is provided, use it.
+    *   **teamAllocationTitle**: "Team Allocation & Resource Planning".
+    *   **teamAllocations**: Based on the \`teamComposition\` input (e.g., "{{{teamComposition}}}"), or if not provided, invent a suitable team of 1-3 roles (e.g., Frontend Developer, Backend Developer, UI/UX Designer). For each role in \`teamAllocations\`:
+        *   **roleName**: (e.g., "Frontend Developer").
+        *   **totalHours**: Estimated total hours for this role for the project (e.g., "170h").
+        *   **duration**: Estimated duration this role will be involved (e.g., "5 weeks").
+        *   **utilization**: Estimated utilization percentage (e.g., "85%").
+        *   **IMPORTANT: DO NOT include 'Hourly Rate' or 'Total Cost' in the output for any role.**
+    *   **teamStructureTitle**: "Team Structure & Responsibilities".
+    *   **teamStructure**: For each role identified above for \`teamAllocations\`, provide:
+        *   **roleName**: (Same as above, e.g., "Frontend Developer").
+        *   **responsibilities**: A list of 2-5 key responsibilities for this role (e.g., ["UI/UX Implementation", "Frontend Framework Setup"]).
 
 Ensure all text content is well-written, professional, and tailored to the input.
 The \`summaryText\` for the executive summary should incorporate the client name, project name, project type, timeline, team size, and budget information naturally.
@@ -122,12 +133,21 @@ const generateProposalFlow = ai.defineFlow(
     if (output.executiveSummary?.highlights?.length && output.executiveSummary?.highlights?.length !== 3) { 
         console.warn("AI generated a number of highlights different from prompt guidance. Expected 3, got:", output.executiveSummary?.highlights?.length);
     }
-    // Other count checks can be added here as warnings if desired,
-    // but they are no longer strict schema violations.
-    // Example:
-    // if (output.executiveSummary?.projectGoals?.length && (output.executiveSummary.projectGoals.length < 2 || output.executiveSummary.projectGoals.length > 5)) {
-    //     console.warn("AI generated a number of project goals outside prompt guidance. Prompt asked for 2-5, got:", output.executiveSummary.projectGoals.length);
-    // }
+    
+    // Ensure teamAllocations and teamStructure have entries if teamComposition was provided or AI generated a team
+    const expectedRoles = input.teamComposition ? input.teamComposition.split(',').map(s => s.trim()).filter(s => s) : [];
+    if (output.teamAndResources && output.teamAndResources.teamAllocations) {
+        if (expectedRoles.length > 0 && output.teamAndResources.teamAllocations.length === 0) {
+            console.warn("AI did not generate team allocations despite team composition input or implicit instruction.");
+        }
+        output.teamAndResources.teamAllocations.forEach(alloc => {
+            if ((alloc as any).hourlyRate || (alloc as any).totalCost) {
+                console.warn(`AI included cost information in teamAllocations for role ${alloc.roleName} against instructions.`);
+                // Optionally, strip it here: delete (alloc as any).hourlyRate; delete (alloc as any).totalCost;
+            }
+        });
+    }
+
 
     return output;
   }
