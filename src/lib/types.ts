@@ -60,6 +60,39 @@ const RequirementsAnalysisSchema = z.object({
 });
 export type RequirementsAnalysis = z.infer<typeof RequirementsAnalysisSchema>;
 
+// Types for Feature Breakdown
+const TagSchema = z.object({
+  text: z.string().describe("Text for the tag (e.g., 'High Priority')."),
+  colorScheme: z.string().describe("A color hint for styling the tag (e.g., 'red', 'blue', 'gray', 'green', 'yellow', 'indigo', 'purple', 'pink').")
+});
+export type Tag = z.infer<typeof TagSchema>;
+
+const ResourceAllocationItemSchema = z.object({
+  role: z.string().describe("The role allocated (e.g., 'Frontend Developer', 'Backend Developer', 'UI/UX Designer')."),
+  hours: z.string().describe("Estimated hours for this role for this feature (e.g., '36h', '20h').")
+});
+export type ResourceAllocationItem = z.infer<typeof ResourceAllocationItemSchema>;
+
+const FeatureItemSchema = z.object({
+  id: z.string().describe("A unique ID for the feature, e.g., 'feat-auth'."),
+  title: z.string().describe("The title of the feature (e.g., 'User Authentication & Authorization')."),
+  description: z.string().describe("A brief description of the feature (e.g., 'User management, role-based access control, session management')."),
+  totalHours: z.string().describe("Estimated total hours for this feature (e.g., '72 hours'). DO NOT include cost."),
+  tags: z.array(TagSchema).min(1).max(2).optional().describe("1-2 descriptive tags for the feature."),
+  functionalFeatures: z.array(z.string()).min(2).max(5).optional().describe("A list of 2-5 specific functional sub-features or points."),
+  nonFunctionalRequirements: z.array(z.string()).min(1).max(4).optional().describe("A list of 1-4 related non-functional requirements."),
+  resourceAllocation: z.array(ResourceAllocationItemSchema).min(1).max(3).optional().describe("A list of 1-3 resource allocations for this feature (role and hours). Sum of hours should be reasonable for totalHours. DO NOT include cost.")
+});
+export type FeatureItem = z.infer<typeof FeatureItemSchema>;
+
+const FeatureBreakdownSchema = z.object({
+  title: z.string().default("Detailed Feature Breakdown").describe("Main title for the feature breakdown section."),
+  subtitle: z.string().default("Complete analysis of all features with time estimates. Cost information is omitted.").describe("Subtitle for the feature breakdown section."),
+  features: z.array(FeatureItemSchema).min(2).max(4).describe("A list of 2-4 detailed features.")
+});
+export type FeatureBreakdown = z.infer<typeof FeatureBreakdownSchema>;
+
+
 export const StructuredProposalSchema = z.object({
   proposalTitle: z.string().describe("Overall title for the proposal, e.g., 'Cyril - Comprehensive Proposal'."),
   clientName: z.string().describe("The name of the client company."),
@@ -72,9 +105,7 @@ export const StructuredProposalSchema = z.object({
     projectGoals: z.array(ProjectGoalSchema).min(2).max(5).describe("A list of 2-5 key project goals and objectives."),
   }),
   requirementsAnalysis: RequirementsAnalysisSchema,
-  featureBreakdown: z.object({
-    content: z.string().describe("Detailed content for Feature Breakdown section (at least 2-3 paragraphs).")
-  }),
+  featureBreakdown: FeatureBreakdownSchema,
   projectTimelineSection: z.object({
     content: z.string().describe("Detailed content for Project Timeline section (at least 2-3 paragraphs).")
   }),

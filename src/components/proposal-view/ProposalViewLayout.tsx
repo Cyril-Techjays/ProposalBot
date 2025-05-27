@@ -6,7 +6,8 @@ import type { StructuredProposal } from '@/lib/types';
 import { ProposalHeader } from './ProposalHeader';
 import { ProposalTabs } from './ProposalTabs';
 import { ExecutiveSummarySection } from './ExecutiveSummarySection';
-import { RequirementsAnalysisSection } from './RequirementsAnalysisSection'; // Import new component
+import { RequirementsAnalysisSection } from './RequirementsAnalysisSection';
+import { FeatureBreakdownSection } from './FeatureBreakdownSection'; // Import new component
 import { GenericSection } from './GenericSection';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AIChatModal } from './AIChatModal'; 
@@ -23,7 +24,6 @@ export type ProposalSectionKey =
   | 'requirementsAnalysis' 
   | 'featureBreakdown' 
   | 'projectTimelineSection' 
-  // | 'budgetAndInvestmentSection' // Removed
   | 'teamAndResources';
 
 export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps) {
@@ -47,11 +47,9 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'requirementsAnalysis':
         return JSON.stringify(currentProposal.requirementsAnalysis); 
       case 'featureBreakdown':
-        return currentProposal.featureBreakdown.content;
+        return JSON.stringify(currentProposal.featureBreakdown); // Stringify the object
       case 'projectTimelineSection':
         return currentProposal.projectTimelineSection.content;
-      // case 'budgetAndInvestmentSection': // Removed
-      //   return currentProposal.budgetAndInvestmentSection.content;
       case 'teamAndResources':
         return currentProposal.teamAndResources.content;
       default:
@@ -73,14 +71,11 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
           updatedProposal.requirementsAnalysis = JSON.parse(newContentString); 
           break;
         case 'featureBreakdown':
-          updatedProposal.featureBreakdown = { ...updatedProposal.featureBreakdown, content: newContentString };
+          updatedProposal.featureBreakdown = JSON.parse(newContentString); // Parse the JSON string
           break;
         case 'projectTimelineSection':
           updatedProposal.projectTimelineSection = { ...updatedProposal.projectTimelineSection, content: newContentString };
           break;
-        // case 'budgetAndInvestmentSection': // Removed
-        //   updatedProposal.budgetAndInvestmentSection = { ...updatedProposal.budgetAndInvestmentSection, content: newContentString };
-        //   break;
         case 'teamAndResources':
           updatedProposal.teamAndResources = { ...updatedProposal.teamAndResources, content: newContentString };
           break;
@@ -92,7 +87,7 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       sessionStorage.setItem(SESSION_STORAGE_KEY_CURRENT_PROPOSAL, JSON.stringify(updatedProposal));
     } catch (e) {
       console.error("Error applying AI edit:", e);
-      toast({ title: "Update Failed", description: "AI returned invalid data or an error occurred.", variant: "destructive" });
+      toast({ title: "Update Failed", description: "AI returned invalid data or an error occurred parsing the update. Please ensure the AI respects the required JSON format for complex sections.", variant: "destructive" });
     }
   };
 
@@ -106,11 +101,9 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'requirementsAnalysis':
         return <RequirementsAnalysisSection data={currentProposal.requirementsAnalysis} />; 
       case 'featureBreakdown':
-        return <GenericSection title="Feature Breakdown" content={currentProposal.featureBreakdown.content} />;
+        return <FeatureBreakdownSection data={currentProposal.featureBreakdown} />; // Use new component
       case 'projectTimelineSection':
         return <GenericSection title="Project Timeline" content={currentProposal.projectTimelineSection.content} />;
-      // case 'budgetAndInvestmentSection': // Removed
-      //   return <GenericSection title="Budget & Investment" content={currentProposal.budgetAndInvestmentSection.content} />;
       case 'teamAndResources':
         return <GenericSection title="Team & Resources" content={currentProposal.teamAndResources.content} />;
       default:

@@ -45,6 +45,7 @@ Basic Requirements: {{{basicRequirements}}}
 {{#if teamComposition}}Team Composition: {{{teamComposition}}}{{/if}}
 
 Please provide the output in the following JSON structure. Ensure all fields are populated accurately and professionally.
+**IMPORTANT: DO NOT include any price or cost estimations in any part of the featureBreakdown section (totalHours, resourceAllocation, etc.). Only provide time estimates in hours (e.g., "72 hours", "36h").**
 
 **Output Structure Guidance:**
 
@@ -62,15 +63,24 @@ Please provide the output in the following JSON structure. Ensure all fields are
         *   Item 2: Label "Total Hours", Value (estimated total hours, e.g., "150-200h"), colorName: "purple".
         *   Item 3: Label "Team Size", Value (number of team members, e.g., "2 members"), colorName: "orange".
     *   **projectGoals**: 2 to 5 project goals. Each goal needs an \`id\` (e.g., "goal-1"), \`title\`, and \`description\`.
-        *   Example Goal: { id: "goal-1", title: "Deliver a Scalable Solution", description: "Build a robust web application that can handle growth and future enhancements." }
 6.  **requirementsAnalysis**:
     *   **projectRequirementsOverview**: A concise overview of the project requirements based on the provided 'Basic Requirements'. This should be 1-2 paragraphs.
-    *   **functionalRequirements**: A list of 3 to 7 key functional requirements derived from the 'Basic Requirements'. Each item should be a concise string. Examples: "User Authentication & Authorization", "Dashboard & Analytics".
-    *   **nonFunctionalRequirements**: A list of 3 to 7 key non-functional requirements. Examples: "Security & Data Protection", "Performance & Scalability".
+    *   **functionalRequirements**: A list of 3 to 7 key functional requirements derived from the 'Basic Requirements'.
+    *   **nonFunctionalRequirements**: A list of 3 to 7 key non-functional requirements.
 7.  **featureBreakdown**:
-    *   **content**: Detailed breakdown of key features and functionalities (2-3 paragraphs).
+    *   **title**: "Detailed Feature Breakdown"
+    *   **subtitle**: "Complete analysis of all features with time estimates. Cost information is omitted."
+    *   **features**: Generate 2 to 4 feature items. For each feature item:
+        *   **id**: A unique string ID (e.g., "feat-auth", "feat-dashboard").
+        *   **title**: A descriptive title for the feature (e.g., "User Authentication & Authorization", "Interactive Dashboard & Analytics").
+        *   **description**: A short summary of the feature (e.g., "Secure user registration, login, role-based access control, and session management.").
+        *   **totalHours**: An estimated total time for this feature in hours (e.g., "72 hours", "40-50 hours"). **DO NOT include cost.**
+        *   **tags**: (Optional) 1-2 tags. Each tag needs \`text\` (e.g., "High Priority", "Core Security") and \`colorScheme\` (e.g., "red", "blue", "gray", "green", "yellow", "indigo", "purple", "pink").
+        *   **functionalFeatures**: (Optional) A list of 2-5 specific functional sub-features or points related to this main feature.
+        *   **nonFunctionalRequirements**: (Optional) A list of 1-4 non-functional requirements specific to this feature.
+        *   **resourceAllocation**: (Optional) 1-3 items. Each item needs \`role\` (e.g., "Frontend Developer") and \`hours\` (e.g., "36h"). The sum of hours here should be reasonable relative to \`totalHours\`. **DO NOT include cost.**
 8.  **projectTimelineSection**:
-    *   **content**: More detailed project timeline, possibly mentioning phases (2-3 paragraphs).
+    *   **content**: Detailed content for Project Timeline section (at least 2-3 paragraphs).
 9.  **teamAndResources**:
     *   **content**: Description of the proposed team and resources (2-3 paragraphs). If \`teamComposition\` is provided, use it.
 
@@ -97,7 +107,7 @@ const generateProposalFlow = ai.defineFlow(
     if (!output) {
       throw new Error("AI failed to generate a structured proposal.");
     }
-    // Ensure summaryBadges has 3 items, highlights has 3, projectGoals has 2-5
+    // Basic validation checks
     if (output.summaryBadges?.length !== 3) {
         console.warn("AI generated incorrect number of summary badges. Expected 3, got:", output.summaryBadges?.length);
     }
@@ -113,7 +123,23 @@ const generateProposalFlow = ai.defineFlow(
      if (output.requirementsAnalysis?.nonFunctionalRequirements?.length < 3 || output.requirementsAnalysis?.nonFunctionalRequirements?.length > 7) {
         console.warn("AI generated incorrect number of non-functional requirements. Expected 3-7, got:", output.requirementsAnalysis?.nonFunctionalRequirements?.length);
     }
-
+    if (output.featureBreakdown?.features?.length < 2 || output.featureBreakdown?.features?.length > 4) {
+        console.warn("AI generated incorrect number of features in feature breakdown. Expected 2-4, got:", output.featureBreakdown?.features?.length);
+    }
+    output.featureBreakdown?.features?.forEach(feature => {
+        if (feature.tags && (feature.tags.length < 1 || feature.tags.length > 2) && feature.tags.length !== 0) { // Allow 0 if optional and not provided
+             console.warn(`AI generated incorrect number of tags for feature "${feature.title}". Expected 1-2 or 0, got:`, feature.tags.length);
+        }
+        if (feature.functionalFeatures && (feature.functionalFeatures.length < 2 || feature.functionalFeatures.length > 5) && feature.functionalFeatures.length !== 0) {
+             console.warn(`AI generated incorrect number of functional features for "${feature.title}". Expected 2-5 or 0, got:`, feature.functionalFeatures.length);
+        }
+        if (feature.nonFunctionalRequirements && (feature.nonFunctionalRequirements.length < 1 || feature.nonFunctionalRequirements.length > 4) && feature.nonFunctionalRequirements.length !== 0) {
+             console.warn(`AI generated incorrect number of non-functional requirements for "${feature.title}". Expected 1-4 or 0, got:`, feature.nonFunctionalRequirements.length);
+        }
+        if (feature.resourceAllocation && (feature.resourceAllocation.length < 1 || feature.resourceAllocation.length > 3) && feature.resourceAllocation.length !== 0) {
+            console.warn(`AI generated incorrect number of resource allocations for "${feature.title}". Expected 1-3 or 0, got:`, feature.resourceAllocation.length);
+        }
+    });
 
     return output;
   }
