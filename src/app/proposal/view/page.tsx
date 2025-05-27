@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ const SESSION_STORAGE_KEY_CURRENT_PROPOSAL = 'currentGeneratedProposalData';
 export default function ProposalViewPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [proposalData, setProposalData] = useState<StructuredProposal | null>(null);
+  const [initialProposalData, setInitialProposalData] = useState<StructuredProposal | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,11 +22,9 @@ export default function ProposalViewPage() {
       const storedData = sessionStorage.getItem(SESSION_STORAGE_KEY_CURRENT_PROPOSAL);
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        setProposalData(parsedData);
-        // Clean up session storage after loading
-        // sessionStorage.removeItem(SESSION_STORAGE_KEY_CURRENT_PROPOSAL); 
-        // Keep it for refresh, or clear if it should only be viewed once after generation.
-        // For now, let's keep it to allow refresh, but in a real app, you might pass an ID and fetch.
+        setInitialProposalData(parsedData);
+        // We keep the data in sessionStorage to allow refresh, 
+        // ProposalViewLayout will handle updates to a working copy.
       } else {
         setError("No proposal data found. Please generate a new proposal.");
         toast({
@@ -47,7 +46,7 @@ export default function ProposalViewPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, toast]);
+  }, [router, toast]); // Removed initialProposalData from dependencies
 
   if (isLoading) {
     return (
@@ -73,7 +72,7 @@ export default function ProposalViewPage() {
     );
   }
 
-  if (!proposalData) {
+  if (!initialProposalData) {
      // This case should ideally be handled by the error state if storedData is null
     return (
       <div className="flex flex-col min-h-screen bg-background items-center justify-center">
@@ -88,5 +87,6 @@ export default function ProposalViewPage() {
     );
   }
 
-  return <ProposalViewLayout proposal={proposalData} />;
+  // Pass initialProposalData to ProposalViewLayout. It will manage its own state for edits.
+  return <ProposalViewLayout initialProposal={initialProposalData} />;
 }

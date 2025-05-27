@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ interface ProposalHeaderProps {
   clientName: string;
   projectType: string;
   summaryBadges: SummaryBadge[];
+  onAIChatClick: () => void; // New prop
 }
 
 const iconMap: { [key: string]: LucideIcon } = {
@@ -20,13 +22,8 @@ const iconMap: { [key: string]: LucideIcon } = {
 };
 
 
-export function ProposalHeader({ title, clientName, projectType, summaryBadges }: ProposalHeaderProps) {
+export function ProposalHeader({ title, clientName, projectType, summaryBadges, onAIChatClick }: ProposalHeaderProps) {
   
-  const handleAIChat = () => {
-    // Placeholder for AI Chat functionality
-    alert("AI Chat functionality coming soon!");
-  };
-
   const handleExportProposal = () => {
     // Placeholder for Export functionality
     alert("Export functionality coming soon!");
@@ -54,7 +51,7 @@ export function ProposalHeader({ title, clientName, projectType, summaryBadges }
             </div>
           </div>
           <div className="flex gap-3 mt-4 sm:mt-0 flex-shrink-0">
-            <Button onClick={handleAIChat} className="bg-green-500 hover:bg-green-600 text-white">
+            <Button onClick={onAIChatClick} className="bg-green-500 hover:bg-green-600 text-white">
               <MessageCircle className="h-4 w-4 mr-2" />
               AI Chat
             </Button>

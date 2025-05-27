@@ -1,7 +1,9 @@
+
 // src/app/actions.ts
 "use server";
 
 import { generateProposal as genkitGenerateProposal, GenerateProposalInput } from "@/ai/flows/generate-proposal";
+import { improveSection as genkitImproveSection, ImproveSectionInput, ImproveSectionOutput } from "@/ai/flows/improve-section";
 import type { ProposalFormData, StructuredProposal } from "@/lib/types";
 
 // Helper function to convert camelCase to Title Case
@@ -34,6 +36,19 @@ export async function handleGenerateProposalAction(
     console.error("Error generating proposal:", error);
     // Check if error is an object and has a message property
     const errorMessage = (error instanceof Error) ? error.message : "Failed to generate proposal. Please try again.";
+    return { error: errorMessage };
+  }
+}
+
+export async function handleImproveSectionAction(
+  input: ImproveSectionInput
+): Promise<{ improvedContent?: string; error?: string }> {
+  try {
+    const result: ImproveSectionOutput = await genkitImproveSection(input);
+    return { improvedContent: result.improvedSectionContent };
+  } catch (error) {
+    console.error("Error improving section with AI:", error);
+    const errorMessage = (error instanceof Error) ? error.message : "Failed to improve section. Please try again.";
     return { error: errorMessage };
   }
 }
