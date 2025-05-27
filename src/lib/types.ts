@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 export const proposalFormSchema = z.object({
@@ -40,9 +41,9 @@ const ProjectGoalSchema = z.object({
 export type ProjectGoal = z.infer<typeof ProjectGoalSchema>;
 
 const HighlightItemSchema = z.object({
-  label: z.string().describe("Label for the highlight (e.g., Timeline, Total Hours, Project Investment)."),
-  value: z.string().describe("Value for the highlight (e.g., 2-3 months, 150-200h, $10,000)."),
-  colorName: z.string().describe("A color name hint for styling (e.g., 'green', 'purple', 'blue'). Will be mapped to Tailwind classes."),
+  label: z.string().describe("Label for the highlight (e.g., Timeline, Total Hours, Team Size)."),
+  value: z.string().describe("Value for the highlight (e.g., 2-3 months, 150-200h, 2 members)."),
+  colorName: z.string().describe("A color name hint for styling (e.g., 'green', 'purple', 'orange'). Will be mapped to Tailwind classes."),
 });
 export type HighlightItem = z.infer<typeof HighlightItemSchema>;
 
@@ -67,7 +68,7 @@ export const StructuredProposalSchema = z.object({
 
   executiveSummary: z.object({
     summaryText: z.string().describe("The main text for the executive summary, around 50-100 words."),
-    highlights: z.array(HighlightItemSchema).length(4).describe("Array of 4 key highlight cards: Timeline, Total Hours, Team Size, Project Investment."), // Changed from 3 to 4
+    highlights: z.array(HighlightItemSchema).length(3).describe("Array of 3 key highlight cards: Timeline, Total Hours, Team Size."),
     projectGoals: z.array(ProjectGoalSchema).min(2).max(5).describe("A list of 2-5 key project goals and objectives."),
   }),
   requirementsAnalysis: RequirementsAnalysisSchema,
@@ -77,7 +78,6 @@ export const StructuredProposalSchema = z.object({
   projectTimelineSection: z.object({
     content: z.string().describe("Detailed content for Project Timeline section (at least 2-3 paragraphs).")
   }),
-  // budgetAndInvestmentSection removed
   teamAndResources: z.object({
     content: z.string().describe("Detailed content for Team & Resources section (at least 2-3 paragraphs).")
   }),
