@@ -56,11 +56,10 @@ Please provide the output in the following JSON structure. Ensure all fields are
     *   One for an estimated budget (e.g., "$10,000 - $15,000", icon: "DollarSign"). Infer a reasonable budget range based on requirements and team.
 5.  **executiveSummary**:
     *   **summaryText**: A concise overview (50-100 words) of the project, its purpose, and key outcomes.
-    *   **highlights**: Exactly 4 highlight items. Provide a \`colorName\` hint ('blue', 'green', 'purple', 'orange') for each.
-        *   Item 1: Label "Project Investment", Value (formatted budget, e.g., "$12,500"), colorName: "blue".
-        *   Item 2: Label "Timeline", Value (estimated timeline, e.g., "2-3 months"), colorName: "green".
-        *   Item 3: Label "Total Hours", Value (estimated total hours, e.g., "150-200h"), colorName: "purple".
-        *   Item 4: Label "Team Size", Value (number of team members, e.g., "2 members"), colorName: "orange".
+    *   **highlights**: Exactly 3 highlight items. Provide a \`colorName\` hint for each.
+        *   Item 1: Label "Timeline", Value (estimated timeline, e.g., "2-3 months"), colorName: "green".
+        *   Item 2: Label "Total Hours", Value (estimated total hours, e.g., "150-200h"), colorName: "purple".
+        *   Item 3: Label "Team Size", Value (number of team members, e.g., "2 members"), colorName: "orange".
     *   **projectGoals**: 2 to 5 project goals. Each goal needs an \`id\` (e.g., "goal-1"), \`title\`, and \`description\`.
         *   Example Goal: { id: "goal-1", title: "Deliver a Scalable Solution", description: "Build a robust web application that can handle growth and future enhancements." }
 6.  **requirementsAnalysis**:
@@ -71,9 +70,7 @@ Please provide the output in the following JSON structure. Ensure all fields are
     *   **content**: Detailed breakdown of key features and functionalities (2-3 paragraphs).
 8.  **projectTimelineSection**:
     *   **content**: More detailed project timeline, possibly mentioning phases (2-3 paragraphs).
-9.  **budgetAndInvestmentSection**:
-    *   **content**: Detailed breakdown of the budget and investment required (2-3 paragraphs).
-10. **teamAndResources**:
+9.  **teamAndResources**:
     *   **content**: Description of the proposed team and resources (2-3 paragraphs). If \`teamComposition\` is provided, use it.
 
 Ensure all text content is well-written, professional, and tailored to the input.
@@ -83,7 +80,6 @@ The projectType should be a concise phrase.
 The team members count for the summary badge should be a number.
 The team size for the executive summary highlight should be like "X members".
 The budget for the summary badge can be a range or a single figure.
-The project investment for the highlight should be a single formatted figure.
 Total hours highlight should be a range like "150-200h" or a single figure like "170h".
 The functional and non-functional requirements should be clear, distinct points.
 `,
@@ -100,14 +96,14 @@ const generateProposalFlow = ai.defineFlow(
     if (!output) {
       throw new Error("AI failed to generate a structured proposal.");
     }
-    // Ensure summaryBadges has 3 items, highlights has 4, projectGoals has 2-5
+    // Ensure summaryBadges has 3 items, highlights has 3, projectGoals has 2-5
     // This is a basic structural validation, more complex validation could be added
     if (output.summaryBadges?.length !== 3) {
         console.warn("AI generated incorrect number of summary badges. Expected 3, got:", output.summaryBadges?.length);
         // Potentially fix or throw error - for now, let it pass but log
     }
-    if (output.executiveSummary?.highlights?.length !== 4) {
-        console.warn("AI generated incorrect number of highlights. Expected 4, got:", output.executiveSummary?.highlights?.length);
+    if (output.executiveSummary?.highlights?.length !== 3) { // Changed from 4 to 3
+        console.warn("AI generated incorrect number of highlights. Expected 3, got:", output.executiveSummary?.highlights?.length);
     }
     if (output.executiveSummary?.projectGoals?.length < 2 || output.executiveSummary?.projectGoals?.length > 5) {
         console.warn("AI generated incorrect number of project goals. Expected 2-5, got:", output.executiveSummary?.projectGoals?.length);
@@ -123,4 +119,3 @@ const generateProposalFlow = ai.defineFlow(
     return output;
   }
 );
-

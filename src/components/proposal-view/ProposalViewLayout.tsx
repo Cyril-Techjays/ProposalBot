@@ -23,7 +23,7 @@ export type ProposalSectionKey =
   | 'requirementsAnalysis' 
   | 'featureBreakdown' 
   | 'projectTimelineSection' 
-  | 'budgetAndInvestmentSection' 
+  // | 'budgetAndInvestmentSection' // Removed
   | 'teamAndResources';
 
 export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps) {
@@ -45,13 +45,13 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'executiveSummary':
         return JSON.stringify(currentProposal.executiveSummary);
       case 'requirementsAnalysis':
-        return JSON.stringify(currentProposal.requirementsAnalysis); // Now stringify the object
+        return JSON.stringify(currentProposal.requirementsAnalysis); 
       case 'featureBreakdown':
         return currentProposal.featureBreakdown.content;
       case 'projectTimelineSection':
         return currentProposal.projectTimelineSection.content;
-      case 'budgetAndInvestmentSection':
-        return currentProposal.budgetAndInvestmentSection.content;
+      // case 'budgetAndInvestmentSection': // Removed
+      //   return currentProposal.budgetAndInvestmentSection.content;
       case 'teamAndResources':
         return currentProposal.teamAndResources.content;
       default:
@@ -70,7 +70,7 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
           updatedProposal.executiveSummary = JSON.parse(newContentString);
           break;
         case 'requirementsAnalysis':
-          updatedProposal.requirementsAnalysis = JSON.parse(newContentString); // Parse as JSON
+          updatedProposal.requirementsAnalysis = JSON.parse(newContentString); 
           break;
         case 'featureBreakdown':
           updatedProposal.featureBreakdown = { ...updatedProposal.featureBreakdown, content: newContentString };
@@ -78,9 +78,9 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
         case 'projectTimelineSection':
           updatedProposal.projectTimelineSection = { ...updatedProposal.projectTimelineSection, content: newContentString };
           break;
-        case 'budgetAndInvestmentSection':
-          updatedProposal.budgetAndInvestmentSection = { ...updatedProposal.budgetAndInvestmentSection, content: newContentString };
-          break;
+        // case 'budgetAndInvestmentSection': // Removed
+        //   updatedProposal.budgetAndInvestmentSection = { ...updatedProposal.budgetAndInvestmentSection, content: newContentString };
+        //   break;
         case 'teamAndResources':
           updatedProposal.teamAndResources = { ...updatedProposal.teamAndResources, content: newContentString };
           break;
@@ -104,13 +104,13 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'executiveSummary':
         return <ExecutiveSummarySection data={currentProposal.executiveSummary} />;
       case 'requirementsAnalysis':
-        return <RequirementsAnalysisSection data={currentProposal.requirementsAnalysis} />; // Use new component
+        return <RequirementsAnalysisSection data={currentProposal.requirementsAnalysis} />; 
       case 'featureBreakdown':
         return <GenericSection title="Feature Breakdown" content={currentProposal.featureBreakdown.content} />;
       case 'projectTimelineSection':
         return <GenericSection title="Project Timeline" content={currentProposal.projectTimelineSection.content} />;
-      case 'budgetAndInvestmentSection':
-        return <GenericSection title="Budget & Investment" content={currentProposal.budgetAndInvestmentSection.content} />;
+      // case 'budgetAndInvestmentSection': // Removed
+      //   return <GenericSection title="Budget & Investment" content={currentProposal.budgetAndInvestmentSection.content} />;
       case 'teamAndResources':
         return <GenericSection title="Team & Resources" content={currentProposal.teamAndResources.content} />;
       default:

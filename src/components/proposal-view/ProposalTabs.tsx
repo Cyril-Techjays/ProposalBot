@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Briefcase, ClipboardList, LayoutGrid, CalendarDays, Landmark, Users, Icon as LucideIcon } from 'lucide-react';
+import { Briefcase, ClipboardList, LayoutGrid, CalendarDays, Users, Icon as LucideIcon } from 'lucide-react'; // Removed Landmark
 import type { ProposalSectionKey } from './ProposalViewLayout';
 
 interface ProposalTabsProps {
@@ -13,14 +13,14 @@ const tabConfig: { key: ProposalSectionKey; label: string; icon: LucideIcon }[] 
   { key: 'requirementsAnalysis', label: 'Requirements Analysis', icon: ClipboardList },
   { key: 'featureBreakdown', label: 'Feature Breakdown', icon: LayoutGrid },
   { key: 'projectTimelineSection', label: 'Project Timeline', icon: CalendarDays },
-  { key: 'budgetAndInvestmentSection', label: 'Budget & Investment', icon: Landmark },
+  // { key: 'budgetAndInvestmentSection', label: 'Budget & Investment', icon: Landmark }, // Removed
   { key: 'teamAndResources', label: 'Team & Resources', icon: Users },
 ];
 
 export function ProposalTabs({ activeTab, onTabChange }: ProposalTabsProps) {
   return (
     <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as ProposalSectionKey)} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1 h-auto p-1">
+      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1 h-auto p-1"> {/* md:grid-cols-6 to md:grid-cols-5 */}
         {tabConfig.map((tab) => (
           <TabsTrigger
             key={tab.key}
