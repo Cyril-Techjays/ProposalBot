@@ -7,7 +7,8 @@ import { ProposalHeader } from './ProposalHeader';
 import { ProposalTabs } from './ProposalTabs';
 import { ExecutiveSummarySection } from './ExecutiveSummarySection';
 import { RequirementsAnalysisSection } from './RequirementsAnalysisSection';
-import { FeatureBreakdownSection } from './FeatureBreakdownSection'; // Import new component
+import { FeatureBreakdownSection } from './FeatureBreakdownSection'; 
+import { ProjectTimelineSection } from './ProjectTimelineSection'; // Import new component
 import { GenericSection } from './GenericSection';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AIChatModal } from './AIChatModal'; 
@@ -47,9 +48,9 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'requirementsAnalysis':
         return JSON.stringify(currentProposal.requirementsAnalysis); 
       case 'featureBreakdown':
-        return JSON.stringify(currentProposal.featureBreakdown); // Stringify the object
+        return JSON.stringify(currentProposal.featureBreakdown);
       case 'projectTimelineSection':
-        return currentProposal.projectTimelineSection.content;
+        return JSON.stringify(currentProposal.projectTimelineSection); // Stringify the object
       case 'teamAndResources':
         return currentProposal.teamAndResources.content;
       default:
@@ -71,10 +72,10 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
           updatedProposal.requirementsAnalysis = JSON.parse(newContentString); 
           break;
         case 'featureBreakdown':
-          updatedProposal.featureBreakdown = JSON.parse(newContentString); // Parse the JSON string
+          updatedProposal.featureBreakdown = JSON.parse(newContentString);
           break;
         case 'projectTimelineSection':
-          updatedProposal.projectTimelineSection = { ...updatedProposal.projectTimelineSection, content: newContentString };
+          updatedProposal.projectTimelineSection = JSON.parse(newContentString); // Parse the JSON string
           break;
         case 'teamAndResources':
           updatedProposal.teamAndResources = { ...updatedProposal.teamAndResources, content: newContentString };
@@ -101,9 +102,9 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'requirementsAnalysis':
         return <RequirementsAnalysisSection data={currentProposal.requirementsAnalysis} />; 
       case 'featureBreakdown':
-        return <FeatureBreakdownSection data={currentProposal.featureBreakdown} />; // Use new component
+        return <FeatureBreakdownSection data={currentProposal.featureBreakdown} />;
       case 'projectTimelineSection':
-        return <GenericSection title="Project Timeline" content={currentProposal.projectTimelineSection.content} />;
+        return <ProjectTimelineSection data={currentProposal.projectTimelineSection} />; // Use new component
       case 'teamAndResources':
         return <GenericSection title="Team & Resources" content={currentProposal.teamAndResources.content} />;
       default:
@@ -149,3 +150,4 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
     </div>
   );
 }
+

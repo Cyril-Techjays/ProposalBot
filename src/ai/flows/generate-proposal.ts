@@ -46,6 +46,7 @@ Basic Requirements: {{{basicRequirements}}}
 
 Please provide the output in the following JSON structure. Ensure all fields are populated accurately and professionally.
 **IMPORTANT: DO NOT include any price or cost estimations in any part of the featureBreakdown section (totalHours, resourceAllocation, etc.). Only provide time estimates in hours (e.g., "72 hours", "36h").**
+**For the projectTimelineSection, the 'percentageOfProject' field should reflect the estimated percentage of total project effort or duration, NOT monetary cost.**
 
 **Output Structure Guidance:**
 
@@ -80,7 +81,14 @@ Please provide the output in the following JSON structure. Ensure all fields are
         *   **nonFunctionalRequirements**: (Optional) A list of 1-4 non-functional requirements specific to this feature.
         *   **resourceAllocation**: (Optional) 1-3 items. Each item needs \`role\` (e.g., "Frontend Developer") and \`hours\` (e.g., "36h"). The sum of hours here should be reasonable relative to \`totalHours\`. **DO NOT include cost.**
 8.  **projectTimelineSection**:
-    *   **content**: Detailed content for Project Timeline section (at least 2-3 paragraphs).
+    *   **title**: "Project Timeline & Phases" (or similar appropriate title).
+    *   **phases**: Generate 3 to 5 project phases. For each phase:
+        *   **id**: A unique string ID (e.g., "phase-discovery", "phase-design").
+        *   **title**: A descriptive title for the phase (e.g., "Discovery & Requirements Analysis", "Design & Architecture", "Development Phase 1 (MVP)").
+        *   **description**: A short summary of the activities in this phase (e.g., "Stakeholder interviews, requirement gathering, technical analysis, project scope definition.").
+        *   **duration**: An estimated duration for this phase (e.g., "2-3 weeks", "1 month").
+        *   **percentageOfProject**: (Optional) An estimated percentage of the total project effort or duration this phase represents (e.g., "15% of project", "20% of project effort"). **This is NOT about cost.**
+        *   **keyDeliverables**: A list of 2-5 key deliverables for this phase (e.g., "Requirements Document", "UI/UX Mockups", "Deployed MVP").
 9.  **teamAndResources**:
     *   **content**: Description of the proposed team and resources (2-3 paragraphs). If \`teamComposition\` is provided, use it.
 
@@ -140,7 +148,17 @@ const generateProposalFlow = ai.defineFlow(
             console.warn(`AI generated incorrect number of resource allocations for "${feature.title}". Expected 1-3 or 0, got:`, feature.resourceAllocation.length);
         }
     });
+    if (output.projectTimelineSection?.phases?.length < 3 || output.projectTimelineSection?.phases?.length > 5) {
+        console.warn("AI generated incorrect number of project timeline phases. Expected 3-5, got:", output.projectTimelineSection?.phases?.length);
+    }
+    output.projectTimelineSection?.phases?.forEach(phase => {
+        if (phase.keyDeliverables?.length < 2 || phase.keyDeliverables?.length > 5) {
+            console.warn(`AI generated incorrect number of key deliverables for phase "${phase.title}". Expected 2-5, got:`, phase.keyDeliverables?.length);
+        }
+    });
+
 
     return output;
   }
 );
+

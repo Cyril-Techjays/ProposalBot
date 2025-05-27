@@ -92,6 +92,23 @@ const FeatureBreakdownSchema = z.object({
 });
 export type FeatureBreakdown = z.infer<typeof FeatureBreakdownSchema>;
 
+// Types for Project Timeline
+const TimelinePhaseSchema = z.object({
+  id: z.string().describe("A unique ID for the phase, e.g., 'phase-1'."),
+  title: z.string().describe("The title of the project phase (e.g., 'Discovery & Requirements Analysis')."),
+  description: z.string().describe("A brief description of what this phase entails."),
+  duration: z.string().describe("Estimated duration of this phase (e.g., '2-3 weeks')."),
+  percentageOfProject: z.string().optional().describe("Estimated percentage of total project effort/duration (e.g., '15% of project'). Not cost related."),
+  keyDeliverables: z.array(z.string()).min(2).max(5).describe("A list of 2-5 key deliverables for this phase."),
+});
+export type TimelinePhase = z.infer<typeof TimelinePhaseSchema>;
+
+const ProjectTimelineSectionSchema = z.object({
+  title: z.string().default("Project Timeline & Phases").describe("Overall title for the project timeline section."),
+  phases: z.array(TimelinePhaseSchema).min(3).max(5).describe("A list of 3-5 project phases."),
+});
+export type ProjectTimelineSectionData = z.infer<typeof ProjectTimelineSectionSchema>;
+
 
 export const StructuredProposalSchema = z.object({
   proposalTitle: z.string().describe("Overall title for the proposal, e.g., 'Cyril - Comprehensive Proposal'."),
@@ -106,11 +123,10 @@ export const StructuredProposalSchema = z.object({
   }),
   requirementsAnalysis: RequirementsAnalysisSchema,
   featureBreakdown: FeatureBreakdownSchema,
-  projectTimelineSection: z.object({
-    content: z.string().describe("Detailed content for Project Timeline section (at least 2-3 paragraphs).")
-  }),
+  projectTimelineSection: ProjectTimelineSectionSchema,
   teamAndResources: z.object({
     content: z.string().describe("Detailed content for Team & Resources section (at least 2-3 paragraphs).")
   }),
 });
 export type StructuredProposal = z.infer<typeof StructuredProposalSchema>;
+

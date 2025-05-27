@@ -13,7 +13,7 @@ import {z} from 'genkit';
 import type { ProposalSectionKey } from '@/components/proposal-view/ProposalViewLayout'; // Assuming this type export exists
 
 const ImproveSectionInputSchema = z.object({
-  sectionKey: z.string().describe("The key of the proposal section being edited (e.g., 'executiveSummary', 'requirementsAnalysis', 'featureBreakdown')."),
+  sectionKey: z.string().describe("The key of the proposal section being edited (e.g., 'executiveSummary', 'requirementsAnalysis', 'featureBreakdown', 'projectTimelineSection')."),
   currentSectionContent: z.string().describe("The current content of the section. This might be plain text or a JSON string for complex sections."),
   userPrompt: z.string().describe("The user's instructions for how to edit or improve the section."),
   proposalContext: z.object({
@@ -61,7 +61,8 @@ Please provide ONLY the new, updated content for the "{{{sectionKey}}}" section 
 - For 'executiveSummary', the structure is: \`{ summaryText: string, highlights: Array<{label: string, value: string, colorName: string}>, projectGoals: Array<{id: string, title: string, description: string}> }\`.
 - For 'requirementsAnalysis', the structure is: \`{ projectRequirementsOverview: string, functionalRequirements: string[], nonFunctionalRequirements: string[] }\`.
 - For 'featureBreakdown', the structure is: \`{ title: string, subtitle: string, features: Array<{ id: string, title: string, description: string, totalHours: string, tags?: Array<{text: string, colorScheme: string}>, functionalFeatures?: string[], nonFunctionalRequirements?: string[], resourceAllocation?: Array<{role: string, hours: string}> }> }\`. **IMPORTANT: For 'featureBreakdown', DO NOT include any price or cost estimations. Only provide time estimates in hours (e.g., "72 hours", "36h").**
-- If the "Current content of the section" is plain text (e.g., for 'projectTimelineSection', 'teamAndResources'), provide the updated plain text.
+- For 'projectTimelineSection', the structure is: \`{ title: string, phases: Array<{ id: string, title: string, description: string, duration: string, percentageOfProject?: string, keyDeliverables: string[] }> }\`. **For 'percentageOfProject', this refers to project effort/duration, NOT cost.**
+- If the "Current content of the section" is plain text (e.g., for 'teamAndResources'), provide the updated plain text.
 - Do not add any extra explanations, apologies, or conversational fluff like "Okay, here's the updated content:". Only output the section content itself.
 - Pay close attention to maintaining the correct data type and structure for the section.
 
@@ -82,7 +83,10 @@ const improveSectionFlow = ai.defineFlow(
     }
     
     // Basic validation for known JSON sections
-    if (input.sectionKey === 'executiveSummary' || input.sectionKey === 'requirementsAnalysis' || input.sectionKey === 'featureBreakdown') { 
+    if (input.sectionKey === 'executiveSummary' || 
+        input.sectionKey === 'requirementsAnalysis' || 
+        input.sectionKey === 'featureBreakdown' ||
+        input.sectionKey === 'projectTimelineSection') { 
         try {
             JSON.parse(output.improvedSectionContent);
         } catch (e) {
