@@ -61,7 +61,7 @@ Please provide ONLY the new, updated content for the "{{{sectionKey}}}" section 
 - If the "Current content of the section" is a JSON object (even if provided as a string), ensure your output is also a valid JSON object string with the same overarching structure, updated according to the user's prompt.
 - For 'executiveSummary', the structure is: \`{ summaryText: string, highlights: Array<{label: string, value: string, colorName: string}>, projectGoals: Array<{id: string, title: string, description: string}> }\`. The 'highlights' array should have exactly 3 items: Timeline, Total Hours, Team Size. **No monetary values in summaryText or highlights.**
 - For 'requirementsAnalysis', the structure is: \`{ projectRequirementsOverview: string, functionalRequirements: string[], nonFunctionalRequirements: string[] }\`.
-- For 'featureBreakdown', the structure is: \`{ title: string, subtitle: string, features: Array<{ id: string, title: string, description: string, totalHours: string, tags?: Array<{text: string, colorScheme: string}>, functionalFeatures?: string[], nonFunctionalRequirements?: string[], resourceAllocation?: Array<{role: string, hours: string}> }> }\`. **IMPORTANT: For 'featureBreakdown', DO NOT include any price or cost estimations. Only provide time estimates in hours (e.g., "72 hours", "36h").**
+- For 'featureBreakdown', the structure is: \`{ title: string, subtitle: string, features: Array<{ id: string, title: string, description: string, totalHours: string, tags?: Array<{text: string, colorScheme: string}>, functionalFeatures?: string[], nonFunctionalRequirements?: string[], resourceAllocation?: Array<{role: string, hours: string}> }> }\`. For \`resourceAllocation\` within each feature, try to include an estimate for each relevant project role. **IMPORTANT: For 'featureBreakdown', DO NOT include any price or cost estimations. Only provide time estimates in hours (e.g., "72 hours", "36h").**
 - For 'projectTimelineSection', the structure is: \`{ title: string, phases: Array<{ id: string, title: string, description: string, duration: string, percentageOfProject?: string, keyDeliverables: string[] }> }\`. **For 'percentageOfProject', this refers to project effort/duration, NOT cost.**
 - For 'teamAndResources', the structure is: \`{ teamAllocationTitle: string, teamAllocations: Array<{roleName: string, totalHours: string, duration: string, utilization: string}>, teamStructureTitle: string, teamStructure: Array<{roleName: string, responsibilities: string[]}> }\`. **IMPORTANT: For 'teamAndResources', DO NOT include 'Hourly Rate' or 'Total Cost' in teamAllocations.**
 - If the "Current content of the section" is plain text, provide the updated plain text.
@@ -108,6 +108,31 @@ const improveSectionFlow = ai.defineFlow(
                 }
               });
             }
+             // Check featureBreakdown for cost in resourceAllocation or totalHours
+            if (input.sectionKey === 'featureBreakdown' && parsedContent.features) {
+              parsedContent.features.forEach((feature: any) => {
+                if (feature.totalHours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(feature.totalHours)) {
+                  console.warn(`AI included monetary symbol in feature.totalHours "${feature.totalHours}" after edit.`);
+                }
+                feature.resourceAllocation?.forEach((alloc: any) => {
+                  if (alloc.hours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(alloc.hours)) {
+                     console.warn(`AI included monetary symbol in feature.resourceAllocation.hours "${alloc.hours}" for role ${alloc.role} after edit.`);
+                  }
+                });
+              });
+            }
+            // Check teamAndResources for cost in teamAllocations
+            if (input.sectionKey === 'teamAndResources' && parsedContent.teamAllocations) {
+                parsedContent.teamAllocations.forEach((alloc: any) => {
+                    if ((alloc as any).hourlyRate || (alloc as any).totalCost) {
+                        console.warn(`AI included cost information in teamAllocations for role ${alloc.roleName} after edit, against instructions.`);
+                    }
+                    if (alloc.totalHours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(alloc.totalHours)) {
+                         console.warn(`AI included monetary symbol in teamAllocations.totalHours "${alloc.totalHours}" for role ${alloc.roleName} after edit.`);
+                    }
+                });
+            }
+
 
         } catch (e) {
             console.error(`AI returned invalid JSON for ${input.sectionKey}:`, output.improvedSectionContent, e);

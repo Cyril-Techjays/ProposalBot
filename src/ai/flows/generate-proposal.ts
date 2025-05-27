@@ -43,7 +43,7 @@ const generateProposalPrompt = ai.definePrompt({
 Client Company Name: {{{companyClientName}}}
 Project Name: {{{projectName}}}
 Basic Requirements: {{{basicRequirements}}}
-{{#if teamComposition}}Team Composition: {{{teamComposition}}}{{/if}}
+{{#if teamComposition}}Overall Project Team Composition: {{{teamComposition}}}{{/if}}
 
 Please provide the output in the following JSON structure. Ensure all fields are populated accurately and professionally, adhering strictly to the no-monetary-values rule.
 
@@ -78,7 +78,7 @@ Please provide the output in the following JSON structure. Ensure all fields are
         *   **tags**: (Optional) 1-2 tags. Each tag needs \`text\` (e.g., "High Priority", "Core Security") and \`colorScheme\` (e.g., "red", "blue", "gray", "green", "yellow", "indigo", "purple", "pink").
         *   **functionalFeatures**: (Optional) A list of 2-5 specific functional sub-features or points related to this main feature.
         *   **nonFunctionalRequirements**: (Optional) A list of 1-4 non-functional requirements specific to this feature.
-        *   **resourceAllocation**: (Optional) 1-3 items. Each item needs \`role\` (e.g., "Frontend Developer") and \`hours\` (e.g., "36h"). The sum of hours here should be reasonable relative to \`totalHours\`. **DO NOT include cost.**
+        *   **resourceAllocation**: (Optional) For *each* role identified in the overall project \`teamComposition\` (e.g., "{{{teamComposition}}}"; if not provided, infer a relevant set like Frontend Developer, Backend Developer, UI/UX Designer for this feature), list an estimated time allocation for *this specific feature*. Each item needs \`role\` (e.g., "Frontend Developer") and \`hours\` (e.g., "30h for this feature"). The sum of hours for all roles on this feature should be reasonably aligned with the feature's \`totalHours\`. If a role from the project team is not directly involved in this specific feature, you can omit it for this feature or assign a very small token amount of hours (e.g., "2h for consultation"). **DO NOT include cost.**
 8.  **projectTimelineSection**:
     *   **title**: "Project Timeline & Phases" (or similar appropriate title).
     *   **phases**: Generate 3 to 5 project phases. For each phase:
