@@ -38,28 +38,26 @@ const generateProposalPrompt = ai.definePrompt({
   input: {schema: GenerateProposalInputSchema},
   output: {schema: StructuredProposalSchema}, // Use the new structured schema
   prompt: `You are an expert business proposal writer. Based on the information provided, generate a comprehensive and persuasive business proposal in a structured format.
+**IMPORTANT RULE: Under no circumstances should any monetary values, costs, prices, or budgets be included in any part of the proposal. All estimates should be in terms of time (hours, weeks, months) or resource allocation (number of people, roles).**
 
 Client Company Name: {{{companyClientName}}}
 Project Name: {{{projectName}}}
 Basic Requirements: {{{basicRequirements}}}
 {{#if teamComposition}}Team Composition: {{{teamComposition}}}{{/if}}
 
-Please provide the output in the following JSON structure. Ensure all fields are populated accurately and professionally.
-**IMPORTANT: DO NOT include any price or cost estimations in any part of the featureBreakdown section (totalHours, resourceAllocation, etc.). Only provide time estimates in hours (e.g., "72 hours", "36h").**
-**For the projectTimelineSection, the 'percentageOfProject' field should reflect the estimated percentage of total project effort or duration, NOT monetary cost.**
-**For the teamAndResources section, under 'teamAllocations', DO NOT include 'Hourly Rate' or 'Total Cost' for any role.**
+Please provide the output in the following JSON structure. Ensure all fields are populated accurately and professionally, adhering strictly to the no-monetary-values rule.
 
 **Output Structure Guidance:**
 
 1.  **proposalTitle**: Combine Project Name and "Comprehensive Proposal". Example: "{{{projectName}}} - Comprehensive Proposal".
 2.  **clientName**: Use "{{{companyClientName}}}".
 3.  **projectType**: Infer from basic requirements (e.g., "Web Application", "Mobile App Development", "AI Integration Project").
-4.  **summaryBadges**: Create exactly 3 badges:
+4.  **summaryBadges**: Create exactly **2** badges:
     *   One for an estimated timeline (e.g., "2-3 months", icon: "Clock"). Infer a realistic timeline.
     *   One for team members (e.g., "1 team members", icon: "Users2"). Count from \`teamComposition\` if provided, otherwise estimate 1-3.
-    *   One for an estimated budget (e.g., "$10,000 - $15,000", icon: "DollarSign"). Infer a reasonable budget range based on requirements and team.
+    *   **DO NOT create a budget badge or any badge with monetary values.**
 5.  **executiveSummary**:
-    *   **summaryText**: A concise overview (50-100 words) of the project, its purpose, and key outcomes.
+    *   **summaryText**: A concise overview (50-100 words) of the project, its purpose, and key outcomes. **Do not mention budget or cost.**
     *   **highlights**: Exactly 3 highlight items:
         *   Item 1: Label "Timeline", Value (estimated timeline, e.g., "2-3 months"), colorName: "green".
         *   Item 2: Label "Total Hours", Value (estimated total hours, e.g., "150-200h"), colorName: "purple".
@@ -104,12 +102,10 @@ Please provide the output in the following JSON structure. Ensure all fields are
         *   **responsibilities**: A list of 2-5 key responsibilities for this role (e.g., ["UI/UX Implementation", "Frontend Framework Setup"]).
 
 Ensure all text content is well-written, professional, and tailored to the input.
-The \`summaryText\` for the executive summary should incorporate the client name, project name, project type, timeline, team size, and budget information naturally.
-For numerical values like budget and hours, provide reasonable estimates if not directly calculable from input.
+The \`summaryText\` for the executive summary should incorporate the client name, project name, project type, timeline, and team size information naturally. **Do not mention budget or cost.**
+For numerical values like hours, provide reasonable estimates if not directly calculable from input.
 The projectType should be a concise phrase.
 The team members count for the summary badge should be a number.
-The team size for the executive summary highlight should be like "X members".
-The budget for the summary badge can be a range or a single figure.
 Total hours highlight should be a range like "150-200h" or a single figure like "170h".
 The functional and non-functional requirements should be clear, distinct points.
 `,
@@ -127,9 +123,17 @@ const generateProposalFlow = ai.defineFlow(
       throw new Error("AI failed to generate a structured proposal.");
     }
     // Basic validation checks based on prompt guidance (not strict schema anymore)
-    if (output.summaryBadges?.length && output.summaryBadges?.length !== 3) {
-        console.warn("AI generated a number of summary badges different from prompt guidance. Expected 3, got:", output.summaryBadges?.length);
+    if (output.summaryBadges?.length && output.summaryBadges?.length !== 2) { // Expect 2 badges
+        console.warn("AI generated a number of summary badges different from prompt guidance. Expected 2, got:", output.summaryBadges?.length);
     }
+     // Check for dollar signs or known currency symbols in summary badge text
+    output.summaryBadges?.forEach(badge => {
+        if (/[$\u20AC\u00A3\u00A5\u20B9]/.test(badge.text)) { // $, €, £, ¥, ₹
+            console.warn(`AI included monetary symbol in summary badge: "${badge.text}" against instructions.`);
+            // Potentially modify or remove the badge here if strict adherence is critical
+        }
+    });
+
     if (output.executiveSummary?.highlights?.length && output.executiveSummary?.highlights?.length !== 3) { 
         console.warn("AI generated a number of highlights different from prompt guidance. Expected 3, got:", output.executiveSummary?.highlights?.length);
     }
@@ -147,8 +151,7 @@ const generateProposalFlow = ai.defineFlow(
             }
         });
     }
-
-
     return output;
   }
 );
+

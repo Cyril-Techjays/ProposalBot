@@ -27,7 +27,7 @@ export interface SavedProposal extends ProposalFormData {
   currentPainPoints?: string;
   proposedSolution?: string;
   timeline?: string;
-  budget?: string;
+  budget?: string; // This was for simple save, will be ignored by new structured generation
   teamSize?: string;
   techStack?: string;
 }
@@ -48,8 +48,8 @@ const HighlightItemSchema = z.object({
 export type HighlightItem = z.infer<typeof HighlightItemSchema>;
 
 const SummaryBadgeSchema = z.object({
-  icon: z.string().describe("Lucide icon name for the badge (e.g., 'Clock')."),
-  text: z.string().describe("Text for the badge (e.g., '2-3 months', '1 team members', '$10,000 - $15,000').")
+  icon: z.string().describe("Lucide icon name for the badge (e.g., 'Clock', 'Users2')."),
+  text: z.string().describe("Text for the badge (e.g., '2-3 months', '1 team members'). No monetary values.")
 });
 export type SummaryBadge = z.infer<typeof SummaryBadgeSchema>;
 
@@ -69,7 +69,7 @@ export type Tag = z.infer<typeof TagSchema>;
 
 const ResourceAllocationItemSchema = z.object({
   role: z.string().describe("The role allocated (e.g., 'Frontend Developer', 'Backend Developer', 'UI/UX Designer')."),
-  hours: z.string().describe("Estimated hours for this role for this feature (e.g., '36h', '20h').")
+  hours: z.string().describe("Estimated hours for this role for this feature (e.g., '36h', '20h'). No cost information.")
 });
 export type ResourceAllocationItem = z.infer<typeof ResourceAllocationItemSchema>;
 
@@ -115,12 +115,13 @@ const RoleAllocationSchema = z.object({
   totalHours: z.string().describe("Estimated total hours for this role for the project (e.g., '170h')."),
   duration: z.string().describe("Estimated duration this role will be involved (e.g., '5 weeks')."),
   utilization: z.string().describe("Estimated utilization percentage for this role (e.g., '85%').")
+  // Hourly Rate and Total Cost are intentionally omitted
 });
 export type RoleAllocation = z.infer<typeof RoleAllocationSchema>;
 
 const RoleResponsibilitiesSchema = z.object({
   roleName: z.string().describe("Name of the team role (e.g., Frontend Developer)."),
-  responsibilities: z.array(z.string()).describe("List of key responsibilities for this role (2-5 items).")
+  responsibilities: z.array(z.string()).describe("List of key responsibilities for this role.") // Prompt guides for 2-5 items
 });
 export type RoleResponsibilities = z.infer<typeof RoleResponsibilitiesSchema>;
 
@@ -137,12 +138,12 @@ export const StructuredProposalSchema = z.object({
   proposalTitle: z.string().describe("Overall title for the proposal, e.g., 'Cyril - Comprehensive Proposal'."),
   clientName: z.string().describe("The name of the client company."),
   projectType: z.string().describe("The type of project (e.g., web application, mobile app)."),
-  summaryBadges: z.array(SummaryBadgeSchema).describe("Array of summary badges (timeline, team members, budget). Should be 3 badges based on prompt."),
+  summaryBadges: z.array(SummaryBadgeSchema).describe("Array of summary badges (timeline, team members). Should be 2 badges based on prompt. No monetary values."),
 
   executiveSummary: z.object({
     summaryText: z.string().describe("The main text for the executive summary, around 50-100 words."),
     highlights: z.array(HighlightItemSchema).describe("Array of key highlight cards: Timeline, Total Hours, Team Size. Should be 3 highlights based on prompt."),
-    projectGoals: z.array(ProjectGoalSchema).describe("A list of key project goals and objectives. Prompt asks for 2-5."),
+    projectGoals: z.array(ProjectGoalSchema).describe("A list of key project goals and objectives."), // Prompt asks for 2-5
   }),
   requirementsAnalysis: RequirementsAnalysisSchema,
   featureBreakdown: FeatureBreakdownSchema, 
@@ -150,3 +151,11 @@ export const StructuredProposalSchema = z.object({
   teamAndResources: TeamAndResourcesSchema,
 });
 export type StructuredProposal = z.infer<typeof StructuredProposalSchema>;
+
+// For use in AIChatModal to identify which section's content to provide
+export type ProposalSectionKey = 
+  | 'executiveSummary' 
+  | 'requirementsAnalysis' 
+  | 'featureBreakdown' 
+  | 'projectTimelineSection' 
+  | 'teamAndResources';
