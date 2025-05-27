@@ -1,22 +1,34 @@
 import { z } from 'zod';
 
 export const proposalFormSchema = z.object({
-  companyClientName: z.string().min(1, 'Company/Client Name is required.'),
+  companyClientName: z.string().min(1, 'Client Company Name is required.'),
   projectName: z.string().min(1, 'Project Name is required.'),
-  industry: z.string().min(1, 'Industry is required.'),
-  businessObjectives: z.string().min(10, 'Business Objectives must be at least 10 characters.'),
-  currentPainPoints: z.string().min(10, 'Current Pain Points must be at least 10 characters (e.g. bullet points).'),
-  proposedSolution: z.string().min(10, 'Proposed Solution must be at least 10 characters.'),
-  timeline: z.string().min(5, 'Timeline description is required.'),
-  budget: z.string().optional(),
-  teamSize: z.string().optional(),
-  techStack: z.string().optional(),
+  basicRequirements: z.string().min(10, 'Basic Requirements must be at least 10 characters.'),
+  teamComposition: z.object({
+    frontendDeveloper: z.boolean().default(false).optional(),
+    backendDeveloper: z.boolean().default(false).optional(),
+    uiUxDesigner: z.boolean().default(false).optional(),
+    qaEngineer: z.boolean().default(false).optional(),
+    businessAnalyst: z.boolean().default(false).optional(),
+    projectManager: z.boolean().default(false).optional(),
+  }).default({}), // Ensure teamComposition is always an object
 });
 
 export type ProposalFormData = z.infer<typeof proposalFormSchema>;
 
+// Keep SavedProposal compatible with the core fields for display and potential future use
+// Fields removed from ProposalFormData are now optional here or handled if undefined.
 export interface SavedProposal extends ProposalFormData {
   id: string;
   generatedProposalText: string;
-  createdAt: string; 
+  createdAt: string;
+  // Fields that were in old ProposalFormData but not in new
+  industry?: string;
+  businessObjectives?: string;
+  currentPainPoints?: string;
+  proposedSolution?: string;
+  timeline?: string;
+  budget?: string;
+  teamSize?: string;
+  techStack?: string;
 }

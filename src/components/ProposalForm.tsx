@@ -2,8 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState, useTransition, useEffect, useCallback } from "react";
-import { Loader2, Lightbulb } from "lucide-react";
+import { useState, useTransition, useEffect } from "react";
+import { Loader2, FileText } from "lucide-react";
 import { proposalFormSchema, type ProposalFormData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,22 +17,29 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { handleGenerateProposalAction, handleSuggestIndustryAction } from "@/app/actions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { handleGenerateProposalAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ProposalFormProps {
   onProposalGenerated: (proposal: string, formData: ProposalFormData) => void;
-  initialData?: Partial<ProposalFormData>;
+  initialData?: Partial<ProposalFormData>; // Kept for potential future use, but current UI doesn't trigger editing
   isLoadingExternally?: boolean;
 }
 
+const teamCompositionRoles = [
+  { id: "frontendDeveloper", label: "Frontend Developer" },
+  { id: "backendDeveloper", label: "Backend Developer" },
+  { id: "uiUxDesigner", label: "UI/UX Designer" },
+  { id: "qaEngineer", label: "QA Engineer" },
+  { id: "businessAnalyst", label: "Business Analyst" },
+  { id: "projectManager", label: "Project Manager" },
+] as const;
+
+
 export function ProposalForm({ onProposalGenerated, initialData, isLoadingExternally }: ProposalFormProps) {
   const [isGenerating, startGeneratingTransition] = useTransition();
-  const [suggestedIndustries, setSuggestedIndustries] = useState<string[]>([]);
-  const [isSuggestingIndustries, setIsSuggestingIndustries] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<ProposalFormData>({
@@ -40,68 +47,34 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
     defaultValues: {
       companyClientName: "",
       projectName: "",
-      industry: "",
-      businessObjectives: "",
-      currentPainPoints: "",
-      proposedSolution: "",
-      timeline: "",
-      budget: "",
-      teamSize: "",
-      techStack: "",
-      ...initialData, // Spread initialData to override defaults if provided
+      basicRequirements: "",
+      teamComposition: {
+        frontendDeveloper: false,
+        backendDeveloper: false,
+        uiUxDesigner: false,
+        qaEngineer: false,
+        businessAnalyst: false,
+        projectManager: false,
+      },
+      ...initialData, 
     },
   });
   
-  // Effect to reset form when initialData changes (e.g. editing a different proposal)
   useEffect(() => {
     form.reset({
-      companyClientName: "",
-      projectName: "",
-      industry: "",
-      businessObjectives: "",
-      currentPainPoints: "",
-      proposedSolution: "",
-      timeline: "",
-      budget: "",
-      teamSize: "",
-      techStack: "",
-      ...initialData,
+      companyClientName: initialData?.companyClientName || "",
+      projectName: initialData?.projectName || "",
+      basicRequirements: initialData?.basicRequirements || "",
+      teamComposition: initialData?.teamComposition || {
+        frontendDeveloper: false,
+        backendDeveloper: false,
+        uiUxDesigner: false,
+        qaEngineer: false,
+        businessAnalyst: false,
+        projectManager: false,
+      },
     });
   }, [initialData, form]);
-
-
-  const companyNameValue = form.watch("companyClientName");
-
-  const fetchSuggestedIndustries = useCallback(async (name: string) => {
-    if (!name || name.trim().length < 3) {
-      setSuggestedIndustries([]);
-      return;
-    }
-    setIsSuggestingIndustries(true);
-    const result = await handleSuggestIndustryAction(name);
-    if (result.industries) {
-      setSuggestedIndustries(result.industries);
-    } else if (result.error) {
-      // Toast for error is optional, could be silent
-      // toast({
-      //   title: "Industry Suggestion Failed",
-      //   description: result.error,
-      //   variant: "destructive",
-      // });
-      setSuggestedIndustries([]);
-    }
-    setIsSuggestingIndustries(false);
-  }, []);
-
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      if (companyNameValue) {
-        fetchSuggestedIndustries(companyNameValue);
-      }
-    }, 500); // Debounce API call
-    return () => clearTimeout(debounceTimer);
-  }, [companyNameValue, fetchSuggestedIndustries]);
-
 
   const onSubmit = (data: ProposalFormData) => {
     startGeneratingTransition(async () => {
@@ -110,7 +83,7 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
         onProposalGenerated(result.proposal, data);
         toast({
           title: "Proposal Generated!",
-          description: "Your business proposal has been successfully created.",
+          description: "Your detailed business proposal has been successfully created.",
         });
       } else if (result.error) {
         toast({
@@ -125,123 +98,18 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
   const isLoading = isGenerating || isLoadingExternally;
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center text-xl">
-          <Lightbulb className="mr-2 h-6 w-6 text-primary" />
-          {initialData?.projectName ? `Editing: ${initialData.projectName}` : 'Create Your Proposal'}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Card className="shadow-xl border-none w-full max-w-2xl mx-auto">
+      <CardContent className="p-6 sm:p-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="companyClientName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company/Client Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Innovatech Solutions" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="projectName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Project Phoenix" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
-              name="industry"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Industry</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className="w-full justify-between font-normal text-left h-auto min-h-10 py-2"
-                        >
-                          {field.value || "Select or type industry"}
-                          {isSuggestingIndustries && <Loader2 className="ml-2 h-4 w-4 animate-spin flex-shrink-0" />}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput 
-                          placeholder="Search industry..."
-                          value={field.value} 
-                          onValueChange={(currentValue) => {
-                            field.onChange(currentValue); 
-                          }}
-                        />
-                        <CommandList>
-                          <CommandEmpty>No industry found.</CommandEmpty>
-                          <CommandGroup>
-                            {suggestedIndustries.map((industry) => (
-                              <CommandItem
-                                key={industry}
-                                value={industry}
-                                onSelect={() => {
-                                  form.setValue("industry", industry, {shouldValidate: true});
-                                }}
-                              >
-                                {industry}
-                              </CommandItem>
-                            ))}
-                            {suggestedIndustries.length === 0 && field.value && !isSuggestingIndustries && (
-                               <CommandItem
-                                key={field.value}
-                                value={field.value}
-                                onSelect={() => {
-                                  form.setValue("industry", field.value, {shouldValidate: true});
-                                }}
-                              >
-                                Use "{field.value}"
-                              </CommandItem>
-                            )}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormDescription>
-                    Type to search or select a suggested industry. Suggestions appear based on Company Name.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="businessObjectives"
+              name="companyClientName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Business Objectives</FormLabel>
+                  <FormLabel>Client Company Name *</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Describe the key business goals for this project."
-                      className="min-h-[100px]"
-                      {...field}
-                    />
+                    <Input placeholder="Enter client company name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -249,16 +117,12 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
             />
             <FormField
               control={form.control}
-              name="currentPainPoints"
+              name="projectName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Current Pain Points</FormLabel>
+                  <FormLabel>Project Name *</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="List current challenges or problems (e.g., using bullet points: * Low user engagement, - Inefficient processes)"
-                      className="min-h-[100px]"
-                      {...field}
-                    />
+                    <Input placeholder="Enter project name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -266,13 +130,13 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
             />
             <FormField
               control={form.control}
-              name="proposedSolution"
+              name="basicRequirements"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Proposed Solution</FormLabel>
+                  <FormLabel>Basic Requirements *</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Outline your proposed solution to address the pain points."
+                      placeholder="Describe the project requirements, features needed, target audience, etc."
                       className="min-h-[120px]"
                       {...field}
                     />
@@ -281,71 +145,50 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="timeline"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Timeline</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., 3-month project, Q1: Phase 1, Q2: Phase 2" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
-            <h3 className="text-lg font-medium pt-4 border-t border-border/50">Optional Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FormField
-                control={form.control}
-                name="budget"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Budget</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., $10,000 - $15,000" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="teamSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team Size</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., 5 members" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="techStack"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tech Stack</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Next.js, Firebase, Tailwind CSS" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div>
+              <FormLabel>Team Composition *</FormLabel>
+              <FormDescription className="mb-2">Select the roles required for the project.</FormDescription>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                {teamCompositionRoles.map((role) => (
+                  <FormField
+                    key={role.id}
+                    control={form.control}
+                    name={`teamComposition.${role.id}`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 shadow-sm bg-background hover:bg-muted/50 transition-colors">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            id={`team-${role.id}`}
+                          />
+                        </FormControl>
+                        <FormLabel htmlFor={`team-${role.id}`} className="font-normal text-sm leading-none cursor-pointer flex-grow">
+                          {role.label}
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
+               <FormMessage>
+                {/* This is a bit tricky with nested objects, react-hook-form might not show top-level error for object directly */}
+                {/* For now, individual checkbox errors are not typical, more about the group if needed */}
+              </FormMessage>
             </div>
 
-            <Button type="submit" disabled={isLoading} className="w-full md:w-auto text-base py-3 px-6">
+            <Button type="submit" disabled={isLoading} className="w-full text-lg py-6 h-auto bg-primary hover:bg-primary/90">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Generating...
                 </>
               ) : (
-                initialData?.projectName ? "Update & Regenerate Proposal" : "Generate Proposal"
+                <>
+                  <FileText className="mr-2 h-5 w-5" />
+                  Generate Detailed Proposal
+                </>
               )}
             </Button>
           </form>

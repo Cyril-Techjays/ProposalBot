@@ -1,25 +1,21 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProposalForm } from '@/components/ProposalForm';
 import { ProposalDisplay } from '@/components/ProposalDisplay';
-import { SavedProposalsList } from '@/components/SavedProposalsList';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, ListChecks, Loader2 } from 'lucide-react';
 import type { SavedProposal, ProposalFormData } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from 'lucide-react';
 
-const LOCAL_STORAGE_KEY = 'proposalCraftAI_savedProposals_v1';
+const LOCAL_STORAGE_KEY = 'aiProposalGenerator_savedProposals_v2'; // Updated key for new structure
 
 export default function HomePage() {
   const [generatedProposalText, setGeneratedProposalText] = useState<string>('');
-  const [currentFormData, setCurrentFormData] = useState<ProposalFormData | null>(null);
+  const [currentFormDataForDisplay, setCurrentFormDataForDisplay] = useState<ProposalFormData | null>(null);
+  // Saved proposals logic is kept for persistence, though UI for listing/editing is removed from this page.
   const [savedProposals, setSavedProposals] = useState<SavedProposal[]>([]);
-  const [view, setView] = useState<'form' | 'saved'>('form'); 
-  const [editingProposalData, setEditingProposalData] = useState<ProposalFormData & {id?: string, createdAt?: string} | null>(null);
-  const [isLoadingPage, setIsLoadingPage] = useState(true); // For initial localStorage load
+  const [isLoadingPage, setIsLoadingPage] = useState(true);
   
   const { toast } = useToast();
 
@@ -39,195 +35,72 @@ export default function HomePage() {
 
   const handleProposalGenerated = (proposal: string, formData: ProposalFormData) => {
     setGeneratedProposalText(proposal);
-    setCurrentFormData(formData);
-    // If we were editing, this generated proposal is the result of that edit
-    if (editingProposalData?.id) {
-        handleSaveProposal({
-            ...formData,
-            generatedProposalText: proposal,
-        }, editingProposalData.id, editingProposalData.createdAt || new Date().toISOString());
-    }
-  };
-  
-  const clearGeneratedProposal = () => {
-    setGeneratedProposalText('');
-    setCurrentFormData(null);
-    // Don't clear editingProposalData here, user might want to go back to the form with it
-  };
-
-  const handleSaveProposal = (
-    proposalDataToSave: ProposalFormData & { generatedProposalText: string },
-    existingId?: string,
-    existingCreatedAt?: string
-  ) => {
-    let updatedProposals;
-    let actionToastTitle = "Proposal Saved!";
-
-    if (existingId) { // This is an update to an existing saved proposal
-        const index = savedProposals.findIndex(p => p.id === existingId);
-        if (index !== -1) {
-            const updatedProposal: SavedProposal = {
-                ...proposalDataToSave,
-                id: existingId,
-                createdAt: existingCreatedAt || savedProposals[index].createdAt, // Preserve original creation if not provided
-            };
-            updatedProposals = [...savedProposals];
-            updatedProposals[index] = updatedProposal;
-            actionToastTitle = "Proposal Updated!";
-        } else { // ID provided but not found, treat as new (should not happen if logic is correct)
-            const newSavedProposal: SavedProposal = {
-                ...proposalDataToSave,
-                id: Date.now().toString(), 
-                createdAt: new Date().toISOString(),
-            };
-            updatedProposals = [...savedProposals, newSavedProposal];
-        }
-    } else { // This is a new proposal to save
-        const newSavedProposal: SavedProposal = {
-            ...proposalDataToSave,
-            id: Date.now().toString(), 
-            createdAt: new Date().toISOString(),
-        };
-        updatedProposals = [...savedProposals, newSavedProposal];
-    }
-    
-    setSavedProposals(updatedProposals);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedProposals));
-    toast({ title: actionToastTitle, description: "Your changes are now in your saved list." });
-    
-    setGeneratedProposalText(''); 
-    setCurrentFormData(null);
-    setEditingProposalData(null); 
-    setView('saved'); 
-  };
-
-
-  const handleLoadProposalForDisplay = (proposal: SavedProposal) => {
-    setGeneratedProposalText(proposal.generatedProposalText);
-    const formDataFromSaved: ProposalFormData = { // Reconstruct ProposalFormData
-        companyClientName: proposal.companyClientName,
-        projectName: proposal.projectName,
-        industry: proposal.industry,
-        businessObjectives: proposal.businessObjectives,
-        currentPainPoints: proposal.currentPainPoints,
-        proposedSolution: proposal.proposedSolution,
-        timeline: proposal.timeline,
-        budget: proposal.budget,
-        teamSize: proposal.teamSize,
-        techStack: proposal.techStack,
-    };
-    setCurrentFormData(formDataFromSaved);
-    setEditingProposalData(null); 
-    setView('form'); 
-    // Smooth scroll to the display section
+    setCurrentFormDataForDisplay(formData);
+    // Scroll to display section
     setTimeout(() => {
         const displaySection = document.getElementById('proposal-display-section');
         displaySection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
   };
+  
+  const clearGeneratedProposal = () => {
+    setGeneratedProposalText('');
+    setCurrentFormDataForDisplay(null);
+  };
 
-  const handleDeleteProposal = (proposalId: string) => {
-    const proposalToDelete = savedProposals.find(p => p.id === proposalId);
-    const updatedProposals = savedProposals.filter(p => p.id !== proposalId);
+  const handleSaveCurrentProposal = (
+    proposalDataToSave: Omit<SavedProposal, 'id' | 'createdAt'>
+  ) => {
+    const newSavedProposal: SavedProposal = {
+        ...proposalDataToSave,
+        id: Date.now().toString(), 
+        createdAt: new Date().toISOString(),
+    };
+    const updatedProposals = [...savedProposals, newSavedProposal];
+    
     setSavedProposals(updatedProposals);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedProposals));
-    toast({ title: "Proposal Deleted", description: `"${proposalToDelete?.projectName || 'Proposal'}" has been removed.` });
+    toast({ title: "Proposal Saved!", description: "Your proposal is saved in browser storage." });
     
-    // If the deleted proposal was being viewed or edited, clear the view
-    if (currentFormData?.projectName === proposalToDelete?.projectName && currentFormData?.companyClientName === proposalToDelete?.companyClientName) {
-        clearGeneratedProposal();
-    }
-    if (editingProposalData?.id === proposalId) {
-        setEditingProposalData(null);
-        setView('form'); // Go back to a clean form
-    }
+    // Optionally clear after saving, or let user explicitly clear
+    // clearGeneratedProposal(); 
   };
-  
-  const handleEditProposalDetails = (proposalToEdit: SavedProposal) => {
-    setEditingProposalData({ // Set this to populate the form
-        id: proposalToEdit.id, // Keep ID for saving later
-        createdAt: proposalToEdit.createdAt, // Keep createdAt
-        companyClientName: proposalToEdit.companyClientName,
-        projectName: proposalToEdit.projectName,
-        industry: proposalToEdit.industry,
-        businessObjectives: proposalToEdit.businessObjectives,
-        currentPainPoints: proposalToEdit.currentPainPoints,
-        proposedSolution: proposalToEdit.proposedSolution,
-        timeline: proposalToEdit.timeline,
-        budget: proposalToEdit.budget,
-        teamSize: proposalToEdit.teamSize,
-        techStack: proposalToEdit.techStack,
-    });
-    setGeneratedProposalText(''); // Clear any currently displayed proposal text
-    setCurrentFormData(null); // Clear current form data for display
-    setView('form'); // Switch to form to edit
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  
-  const startNewProposal = () => {
-    setEditingProposalData(null); // Clear any editing state
-    setGeneratedProposalText('');
-    setCurrentFormData(null);
-    setView('form');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
 
   if (isLoadingPage) {
     return (
         <div className="flex flex-col min-h-screen bg-background items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Loading ProposalCraft AI...</p>
+            <p className="mt-4 text-muted-foreground">Loading AI Proposal Generator...</p>
         </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            <Button 
-                variant={view === 'form' && !editingProposalData ? 'default' : 'outline'} 
-                onClick={startNewProposal}
-                className="text-sm sm:text-base py-2 px-4 sm:py-3 sm:px-6 shadow-sm flex-grow sm:flex-grow-0"
-            >
-                <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> New Proposal
-            </Button>
-            <Button 
-                variant={view === 'saved' ? 'default' : 'outline'} 
-                onClick={() => setView('saved')}
-                className="text-sm sm:text-base py-2 px-4 sm:py-3 sm:px-6 shadow-sm flex-grow sm:flex-grow-0"
-            >
-                <ListChecks className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Saved Proposals ({savedProposals.length})
-            </Button>
+      {/* Header removed as per screenshot, title handled in-page */}
+      <main className="flex-grow container mx-auto px-4 py-8 sm:py-12 md:py-16 flex flex-col items-center">
+        <div className="text-center mb-8 sm:mb-10">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-2 sm:mb-3">
+            AI Proposal Generator
+          </h1>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-xl">
+            Generate comprehensive project proposals in minutes
+          </p>
         </div>
 
-        {view === 'form' && (
-          <>
-            <ProposalForm 
-                onProposalGenerated={handleProposalGenerated} 
-                initialData={editingProposalData || undefined} // Pass data if editing
-            />
-            {generatedProposalText && currentFormData && (
-              <div id="proposal-display-section" className="mt-8">
-                <ProposalDisplay
-                  proposalText={generatedProposalText}
-                  originalFormData={currentFormData}
-                  onSaveProposal={(data) => handleSaveProposal(data, editingProposalData?.id, editingProposalData?.createdAt)}
-                  onClearProposal={clearGeneratedProposal}
-                />
-              </div>
-            )}
-          </>
-        )}
+        <ProposalForm 
+            onProposalGenerated={handleProposalGenerated} 
+        />
 
-        {view === 'saved' && (
-          <SavedProposalsList
-            proposals={savedProposals}
-            onLoadProposal={handleLoadProposalForDisplay}
-            onDeleteProposal={handleDeleteProposal}
-            onEditProposal={handleEditProposalDetails}
-          />
+        {generatedProposalText && currentFormDataForDisplay && (
+          <div id="proposal-display-section" className="w-full max-w-3xl mt-10 sm:mt-12">
+            <ProposalDisplay
+              proposalText={generatedProposalText}
+              originalFormData={currentFormDataForDisplay}
+              onSaveProposal={handleSaveCurrentProposal} // Simplified save, always saves as new
+              onClearProposal={clearGeneratedProposal}
+            />
+          </div>
         )}
       </main>
       <Footer />
