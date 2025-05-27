@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { StructuredProposal } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +26,7 @@ export function ExecutiveSummarySection({ data }: ExecutiveSummarySectionProps) 
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> {/* Changed lg:grid-cols-4 to lg:grid-cols-3 */}
         {data.highlights.map((highlight, index) => {
             const bgColor = colorMap[highlight.colorName] || colorMap.default;
             return (
