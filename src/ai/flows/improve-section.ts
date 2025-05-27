@@ -57,10 +57,10 @@ The user wants to make the following changes:
 "{{{userPrompt}}}"
 
 Please provide ONLY the new, updated content for the "{{{sectionKey}}}" section based on the user's request.
-- If the "Current content of the section" is a JSON object (even if provided as a string), ensure your output is also a valid JSON object string with the same overarching structure, updated according to the user's prompt.
+- If the "Current content of the section" is a JSON object (even if provided as a string), ensure your output is also a valid JSON object string with the same overarching structure, updated according to the user's prompt. Pay close attention to the specific fields required for sections like 'executiveSummary' (which includes summaryText, highlights, projectGoals) or 'requirementsAnalysis' (which includes projectRequirementsOverview, functionalRequirements, nonFunctionalRequirements).
 - If the "Current content of the section" is plain text, provide the updated plain text.
 - Do not add any extra explanations, apologies, or conversational fluff like "Okay, here's the updated content:". Only output the section content itself.
-- Pay close attention to maintaining the correct data type and structure for the section. For example, if the section is 'executiveSummary', it has a specific JSON structure that must be preserved.
+- Pay close attention to maintaining the correct data type and structure for the section.
 
 Updated "{{{sectionKey}}}" content:
 `,
@@ -73,24 +73,18 @@ const improveSectionFlow = ai.defineFlow(
     outputSchema: ImproveSectionOutputSchema,
   },
   async (input: ImproveSectionInput) : Promise<ImproveSectionOutput> => {
-    // Log the input for easier debugging if necessary
-    // console.log('improveSectionFlow input:', JSON.stringify(input, null, 2));
-
     const {output} = await improveSectionGenkitPrompt(input);
     if (!output?.improvedSectionContent) {
-      // console.error('AI failed to generate improved section content. Raw output:', output);
       throw new Error("AI failed to generate improved section content or returned empty content.");
     }
     
-    // Basic validation: if the original was JSON, try to parse the new one.
-    // This is a light check; more robust validation might be needed depending on AI reliability.
-    if (input.sectionKey === 'executiveSummary') { // Example check for a known JSON section
+    // Basic validation for known JSON sections
+    if (input.sectionKey === 'executiveSummary' || input.sectionKey === 'requirementsAnalysis') { 
         try {
             JSON.parse(output.improvedSectionContent);
         } catch (e) {
-            // console.error("AI returned invalid JSON for executiveSummary:", output.improvedSectionContent, e);
-            // Optionally, you could try to ask the AI to fix it here, or just throw.
-            throw new Error(`AI returned invalid JSON for section ${input.sectionKey}. Please try rephrasing your request.`);
+            console.error(`AI returned invalid JSON for ${input.sectionKey}:`, output.improvedSectionContent, e);
+            throw new Error(`AI returned invalid JSON for section ${input.sectionKey}. Please try rephrasing your request, ensuring the AI maintains the required JSON structure.`);
         }
     }
 
@@ -99,3 +93,4 @@ const improveSectionFlow = ai.defineFlow(
     };
   }
 );
+

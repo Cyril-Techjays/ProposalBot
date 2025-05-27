@@ -52,6 +52,13 @@ const SummaryBadgeSchema = z.object({
 });
 export type SummaryBadge = z.infer<typeof SummaryBadgeSchema>;
 
+const RequirementsAnalysisSchema = z.object({
+  projectRequirementsOverview: z.string().describe("A general overview of the project requirements (1-2 paragraphs)."),
+  functionalRequirements: z.array(z.string()).min(3).max(7).describe("A list of 3-7 key functional requirements."),
+  nonFunctionalRequirements: z.array(z.string()).min(3).max(7).describe("A list of 3-7 key non-functional requirements."),
+});
+export type RequirementsAnalysis = z.infer<typeof RequirementsAnalysisSchema>;
+
 export const StructuredProposalSchema = z.object({
   proposalTitle: z.string().describe("Overall title for the proposal, e.g., 'Cyril - Comprehensive Proposal'."),
   clientName: z.string().describe("The name of the client company."),
@@ -63,9 +70,7 @@ export const StructuredProposalSchema = z.object({
     highlights: z.array(HighlightItemSchema).length(4).describe("Array of 4 key highlight cards: Project Investment, Timeline, Total Hours, Team Size."),
     projectGoals: z.array(ProjectGoalSchema).min(2).max(5).describe("A list of 2-5 key project goals and objectives."),
   }),
-  requirementsAnalysis: z.object({
-    content: z.string().describe("Detailed content for Requirements Analysis section (at least 2-3 paragraphs).")
-  }),
+  requirementsAnalysis: RequirementsAnalysisSchema,
   featureBreakdown: z.object({
     content: z.string().describe("Detailed content for Feature Breakdown section (at least 2-3 paragraphs).")
   }),

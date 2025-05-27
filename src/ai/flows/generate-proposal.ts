@@ -64,9 +64,11 @@ Please provide the output in the following JSON structure. Ensure all fields are
     *   **projectGoals**: 2 to 5 project goals. Each goal needs an \`id\` (e.g., "goal-1"), \`title\`, and \`description\`.
         *   Example Goal: { id: "goal-1", title: "Deliver a Scalable Solution", description: "Build a robust web application that can handle growth and future enhancements." }
 6.  **requirementsAnalysis**:
-    *   **content**: Detailed analysis of the client's requirements (2-3 paragraphs). Expand on \`basicRequirements\`.
+    *   **projectRequirementsOverview**: A concise overview of the project requirements based on the provided 'Basic Requirements'. This should be 1-2 paragraphs.
+    *   **functionalRequirements**: A list of 3 to 7 key functional requirements derived from the 'Basic Requirements'. Each item should be a concise string. Examples: "User Authentication & Authorization", "Dashboard & Analytics".
+    *   **nonFunctionalRequirements**: A list of 3 to 7 key non-functional requirements. Examples: "Security & Data Protection", "Performance & Scalability".
 7.  **featureBreakdown**:
-    *   **content**: Breakdown of key features and functionalities (2-3 paragraphs).
+    *   **content**: Detailed breakdown of key features and functionalities (2-3 paragraphs).
 8.  **projectTimelineSection**:
     *   **content**: More detailed project timeline, possibly mentioning phases (2-3 paragraphs).
 9.  **budgetAndInvestmentSection**:
@@ -83,6 +85,7 @@ The team size for the executive summary highlight should be like "X members".
 The budget for the summary badge can be a range or a single figure.
 The project investment for the highlight should be a single formatted figure.
 Total hours highlight should be a range like "150-200h" or a single figure like "170h".
+The functional and non-functional requirements should be clear, distinct points.
 `,
 });
 
@@ -109,7 +112,15 @@ const generateProposalFlow = ai.defineFlow(
     if (output.executiveSummary?.projectGoals?.length < 2 || output.executiveSummary?.projectGoals?.length > 5) {
         console.warn("AI generated incorrect number of project goals. Expected 2-5, got:", output.executiveSummary?.projectGoals?.length);
     }
+    if (output.requirementsAnalysis?.functionalRequirements?.length < 3 || output.requirementsAnalysis?.functionalRequirements?.length > 7) {
+        console.warn("AI generated incorrect number of functional requirements. Expected 3-7, got:", output.requirementsAnalysis?.functionalRequirements?.length);
+    }
+     if (output.requirementsAnalysis?.nonFunctionalRequirements?.length < 3 || output.requirementsAnalysis?.nonFunctionalRequirements?.length > 7) {
+        console.warn("AI generated incorrect number of non-functional requirements. Expected 3-7, got:", output.requirementsAnalysis?.nonFunctionalRequirements?.length);
+    }
+
 
     return output;
   }
 );
+
