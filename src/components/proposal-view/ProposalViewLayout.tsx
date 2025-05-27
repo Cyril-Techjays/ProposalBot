@@ -9,13 +9,14 @@ import { ExecutiveSummarySection } from './ExecutiveSummarySection';
 import { RequirementsAnalysisSection } from './RequirementsAnalysisSection';
 import { FeatureBreakdownSection } from './FeatureBreakdownSection'; 
 import { ProjectTimelineSection } from './ProjectTimelineSection';
-import { TeamAndResourcesSection } from './TeamAndResourcesSection'; // Import new component
-import { GenericSection } from './GenericSection'; // Keep for potential fallback or future simple sections
+import { TeamAndResourcesSection } from './TeamAndResourcesSection';
+import { GenericSection } from './GenericSection'; 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AIChatModal } from './AIChatModal'; 
 import { useToast } from '@/hooks/use-toast';
 
 const SESSION_STORAGE_KEY_CURRENT_PROPOSAL = 'currentGeneratedProposalData';
+export const PRINTABLE_CONTENT_ID = 'printable-proposal-section-content';
 
 interface ProposalViewLayoutProps {
   initialProposal: StructuredProposal; 
@@ -53,7 +54,7 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'projectTimelineSection':
         return JSON.stringify(currentProposal.projectTimelineSection);
       case 'teamAndResources':
-        return JSON.stringify(currentProposal.teamAndResources); // Stringify the object
+        return JSON.stringify(currentProposal.teamAndResources);
       default:
         const exhaustiveCheck: never = activeTab; 
         return "";
@@ -79,10 +80,10 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
           updatedProposal.projectTimelineSection = JSON.parse(newContentString);
           break;
         case 'teamAndResources':
-          updatedProposal.teamAndResources = JSON.parse(newContentString); // Parse the JSON string
+          updatedProposal.teamAndResources = JSON.parse(newContentString);
           break;
         default:
-          const exhaustiveCheck: never = sectionKey; 
+          const exhaustiveCheck: never = sectionKey;
           throw new Error(`Unknown section key: ${exhaustiveCheck}`);
       }
       setCurrentProposal(updatedProposal);
@@ -107,10 +108,9 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
       case 'projectTimelineSection':
         return <ProjectTimelineSection data={currentProposal.projectTimelineSection} />;
       case 'teamAndResources':
-        return <TeamAndResourcesSection data={currentProposal.teamAndResources} />; // Use new component
+        return <TeamAndResourcesSection data={currentProposal.teamAndResources} />;
       default:
         const exhaustiveCheck: never = activeTab;
-        // Fallback for safety, though all keys should be handled
         return <GenericSection title="Content Area" content={`Content for section ${exhaustiveCheck} will appear here.`} />;
     }
   };
@@ -132,7 +132,9 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
         <ProposalTabs activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="mt-6 bg-card p-6 rounded-lg shadow-md">
            <ScrollArea className="h-[calc(100vh-300px)] pr-3"> 
-            {renderTabContent()}
+            <div id={PRINTABLE_CONTENT_ID}>
+              {renderTabContent()}
+            </div>
           </ScrollArea>
         </div>
       </main>
