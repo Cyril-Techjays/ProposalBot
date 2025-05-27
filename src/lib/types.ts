@@ -11,18 +11,16 @@ export const proposalFormSchema = z.object({
     qaEngineer: z.boolean().default(false).optional(),
     businessAnalyst: z.boolean().default(false).optional(),
     projectManager: z.boolean().default(false).optional(),
-  }).default({}), // Ensure teamComposition is always an object
+  }).default({}),
 });
 
 export type ProposalFormData = z.infer<typeof proposalFormSchema>;
 
-// Keep SavedProposal compatible with the core fields for display and potential future use
-// Fields removed from ProposalFormData are now optional here or handled if undefined.
+// For saving simple text proposals (current page.tsx functionality)
 export interface SavedProposal extends ProposalFormData {
   id: string;
   generatedProposalText: string;
   createdAt: string;
-  // Fields that were in old ProposalFormData but not in new
   industry?: string;
   businessObjectives?: string;
   currentPainPoints?: string;
@@ -32,3 +30,53 @@ export interface SavedProposal extends ProposalFormData {
   teamSize?: string;
   techStack?: string;
 }
+
+// New types for structured proposal display
+const ProjectGoalSchema = z.object({
+  id: z.string().describe("A unique ID for the goal, e.g., 'goal-1'"),
+  title: z.string().describe("The title of the project goal."),
+  description: z.string().describe("A brief description of the project goal.")
+});
+export type ProjectGoal = z.infer<typeof ProjectGoalSchema>;
+
+const HighlightItemSchema = z.object({
+  label: z.string().describe("Label for the highlight (e.g., Project Investment, Timeline)."),
+  value: z.string().describe("Value for the highlight (e.g., $10,625, 2-3 months)."),
+  colorName: z.string().describe("A color name hint for styling (e.g., 'blue', 'green', 'purple', 'orange'). Will be mapped to Tailwind classes."),
+});
+export type HighlightItem = z.infer<typeof HighlightItemSchema>;
+
+const SummaryBadgeSchema = z.object({
+  icon: z.string().describe("Lucide icon name for the badge (e.g., 'Clock')."),
+  text: z.string().describe("Text for the badge (e.g., '2-3 months', '1 team members', '$10,625').")
+});
+export type SummaryBadge = z.infer<typeof SummaryBadgeSchema>;
+
+export const StructuredProposalSchema = z.object({
+  proposalTitle: z.string().describe("Overall title for the proposal, e.g., 'Cyril - Comprehensive Proposal'."),
+  clientName: z.string().describe("The name of the client company."),
+  projectType: z.string().describe("The type of project (e.g., web application, mobile app)."),
+  summaryBadges: z.array(SummaryBadgeSchema).describe("Array of 3 summary badges (timeline, team members, budget)."),
+
+  executiveSummary: z.object({
+    summaryText: z.string().describe("The main text for the executive summary, around 50-100 words."),
+    highlights: z.array(HighlightItemSchema).length(4).describe("Array of 4 key highlight cards: Project Investment, Timeline, Total Hours, Team Size."),
+    projectGoals: z.array(ProjectGoalSchema).min(2).max(5).describe("A list of 2-5 key project goals and objectives."),
+  }),
+  requirementsAnalysis: z.object({
+    content: z.string().describe("Detailed content for Requirements Analysis section (at least 2-3 paragraphs).")
+  }),
+  featureBreakdown: z.object({
+    content: z.string().describe("Detailed content for Feature Breakdown section (at least 2-3 paragraphs).")
+  }),
+  projectTimelineSection: z.object({
+    content: z.string().describe("Detailed content for Project Timeline section (at least 2-3 paragraphs).")
+  }),
+  budgetAndInvestmentSection: z.object({
+    content: z.string().describe("Detailed content for Budget & Investment section (at least 2-3 paragraphs).")
+  }),
+  teamAndResources: z.object({
+    content: z.string().describe("Detailed content for Team & Resources section (at least 2-3 paragraphs).")
+  }),
+});
+export type StructuredProposal = z.infer<typeof StructuredProposalSchema>;

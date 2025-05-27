@@ -2,8 +2,7 @@
 "use server";
 
 import { generateProposal as genkitGenerateProposal, GenerateProposalInput } from "@/ai/flows/generate-proposal";
-// import { suggestIndustry as genkitSuggestIndustry, SuggestIndustryInput } from "@/ai/flows/suggest-industry"; // Removed as industry field is removed
-import type { ProposalFormData } from "@/lib/types";
+import type { ProposalFormData, StructuredProposal } from "@/lib/types";
 
 // Helper function to convert camelCase to Title Case
 function camelToTitleCase(str: string): string {
@@ -14,7 +13,7 @@ function camelToTitleCase(str: string): string {
 
 export async function handleGenerateProposalAction(
   data: ProposalFormData
-): Promise<{ proposal?: string; error?: string }> {
+): Promise<{ proposal?: StructuredProposal; error?: string }> {
   try {
     const selectedRoles = data.teamComposition 
       ? Object.entries(data.teamComposition)
@@ -27,29 +26,14 @@ export async function handleGenerateProposalAction(
       companyClientName: data.companyClientName,
       projectName: data.projectName,
       basicRequirements: data.basicRequirements,
-      teamComposition: selectedRoles || undefined, // Pass undefined if empty to let Handlebars condition work
+      teamComposition: selectedRoles || undefined, 
     };
     const result = await genkitGenerateProposal(input);
-    return { proposal: result.proposal };
+    return { proposal: result };
   } catch (error) {
     console.error("Error generating proposal:", error);
-    return { error: "Failed to generate proposal. Please try again." };
+    // Check if error is an object and has a message property
+    const errorMessage = (error instanceof Error) ? error.message : "Failed to generate proposal. Please try again.";
+    return { error: errorMessage };
   }
 }
-
-// Removed handleSuggestIndustryAction as the industry field and its suggestion functionality are no longer part of the form.
-// export async function handleSuggestIndustryAction(
-//   companyName: string
-// ): Promise<{ industries?: string[]; error?: string }> {
-//   if (!companyName.trim()) {
-//     return { industries: [] }; 
-//   }
-//   try {
-//     const input: SuggestIndustryInput = { companyName };
-//     const result = await genkitSuggestIndustry(input);
-//     return { industries: result.industries };
-//   } catch (error) {
-//     console.error("Error suggesting industries:", error);
-//     return { error: "Failed to suggest industries." };
-//   }
-// }

@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState, useTransition, useEffect } from "react";
+import { useEffect } from "react";
 import { Loader2, FileText } from "lucide-react";
 import { proposalFormSchema, type ProposalFormData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -18,14 +18,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { handleGenerateProposalAction } from "@/app/actions";
+// handleGenerateProposalAction is now called from page.tsx
+// import { handleGenerateProposalAction } from "@/app/actions"; 
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ProposalFormProps {
-  onProposalGenerated: (proposal: string, formData: ProposalFormData) => void;
-  initialData?: Partial<ProposalFormData>; // Kept for potential future use, but current UI doesn't trigger editing
-  isLoadingExternally?: boolean;
+  onGenerate: (formData: ProposalFormData) => void; // Changed from onProposalGenerated
+  initialData?: Partial<ProposalFormData>;
+  isGenerating?: boolean; // Changed from isLoadingExternally
 }
 
 const teamCompositionRoles = [
@@ -38,8 +39,8 @@ const teamCompositionRoles = [
 ] as const;
 
 
-export function ProposalForm({ onProposalGenerated, initialData, isLoadingExternally }: ProposalFormProps) {
-  const [isGenerating, startGeneratingTransition] = useTransition();
+export function ProposalForm({ onGenerate, initialData, isGenerating }: ProposalFormProps) {
+  // const [isGenerating, startGeneratingTransition] = useTransition(); // Transition managed by parent page
   const { toast } = useToast();
 
   const form = useForm<ProposalFormData>({
@@ -61,41 +62,28 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
   });
   
   useEffect(() => {
-    form.reset({
-      companyClientName: initialData?.companyClientName || "",
-      projectName: initialData?.projectName || "",
-      basicRequirements: initialData?.basicRequirements || "",
-      teamComposition: initialData?.teamComposition || {
-        frontendDeveloper: false,
-        backendDeveloper: false,
-        uiUxDesigner: false,
-        qaEngineer: false,
-        businessAnalyst: false,
-        projectManager: false,
-      },
-    });
+    if (initialData) {
+      form.reset({
+        companyClientName: initialData.companyClientName || "",
+        projectName: initialData.projectName || "",
+        basicRequirements: initialData.basicRequirements || "",
+        teamComposition: initialData.teamComposition || {
+          frontendDeveloper: false,
+          backendDeveloper: false,
+          uiUxDesigner: false,
+          qaEngineer: false,
+          businessAnalyst: false,
+          projectManager: false,
+        },
+      });
+    }
   }, [initialData, form]);
 
   const onSubmit = (data: ProposalFormData) => {
-    startGeneratingTransition(async () => {
-      const result = await handleGenerateProposalAction(data);
-      if (result.proposal) {
-        onProposalGenerated(result.proposal, data);
-        toast({
-          title: "Proposal Generated!",
-          description: "Your detailed business proposal has been successfully created.",
-        });
-      } else if (result.error) {
-        toast({
-          title: "Generation Failed",
-          description: result.error,
-          variant: "destructive",
-        });
-      }
-    });
+    onGenerate(data); // Parent page will handle the action and transition
   };
   
-  const isLoading = isGenerating || isLoadingExternally;
+  // const isLoading = isGenerating || isLoadingExternally; // Simplified
 
   return (
     <Card className="shadow-xl border-none w-full max-w-2xl mx-auto">
@@ -147,8 +135,8 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
             />
 
             <div>
-              <FormLabel>Team Composition *</FormLabel>
-              <FormDescription className="mb-2">Select the roles required for the project.</FormDescription>
+              <FormLabel>Team Composition</FormLabel>
+              <FormDescription className="mb-2">Select the roles required for the project (optional).</FormDescription>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 {teamCompositionRoles.map((role) => (
                   <FormField
@@ -173,13 +161,12 @@ export function ProposalForm({ onProposalGenerated, initialData, isLoadingExtern
                 ))}
               </div>
                <FormMessage>
-                {/* This is a bit tricky with nested objects, react-hook-form might not show top-level error for object directly */}
-                {/* For now, individual checkbox errors are not typical, more about the group if needed */}
+                 {form.formState.errors.teamComposition?.root?.message}
               </FormMessage>
             </div>
 
-            <Button type="submit" disabled={isLoading} className="w-full text-lg py-6 h-auto bg-primary hover:bg-primary/90">
-              {isLoading ? (
+            <Button type="submit" disabled={isGenerating} className="w-full text-lg py-6 h-auto bg-primary hover:bg-primary/90 text-primary-foreground">
+              {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Generating...
