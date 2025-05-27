@@ -14,9 +14,12 @@ import { GenericSection } from './GenericSection';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AIChatModal } from './AIChatModal'; 
 import { useToast } from '@/hooks/use-toast';
+import { PrintableProposal } from './PrintableProposal'; // Import new component
 
 const SESSION_STORAGE_KEY_CURRENT_PROPOSAL = 'currentGeneratedProposalData';
-export const PRINTABLE_CONTENT_ID = 'printable-proposal-section-content';
+// This ID is for the content of the *active* tab, used for visual display and potentially AI chat context.
+export const ACTIVE_TAB_CONTENT_ID = 'active-proposal-section-content';
+
 
 interface ProposalViewLayoutProps {
   initialProposal: StructuredProposal; 
@@ -57,7 +60,7 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
         return JSON.stringify(currentProposal.teamAndResources);
       default:
         const exhaustiveCheck: never = activeTab; 
-        return "";
+        throw new Error(`Unknown section key: ${exhaustiveCheck}`);
     }
   };
 
@@ -132,12 +135,19 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
         <ProposalTabs activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="mt-6 bg-card p-6 rounded-lg shadow-md">
            <ScrollArea className="h-[calc(100vh-300px)] pr-3"> 
-            <div id={PRINTABLE_CONTENT_ID}>
+            <div id={ACTIVE_TAB_CONTENT_ID}> {/* ID for the content of the active tab */}
               {renderTabContent()}
             </div>
           </ScrollArea>
         </div>
       </main>
+
+      {/* Hidden container for full PDF export. Positioned off-screen. */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '210mm', zIndex: -100 }}>
+         {/* Ensure currentProposal exists before rendering PrintableProposal */}
+        {currentProposal && <PrintableProposal proposalData={currentProposal} />}
+      </div>
+
       {isAIChatModalOpen && (
         <AIChatModal
           isOpen={isAIChatModalOpen}

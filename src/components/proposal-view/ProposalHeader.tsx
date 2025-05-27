@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Home, MessageCircle, Download, Clock, Users2, DollarSign, Icon as LucideIcon } from 'lucide-react';
 import type { SummaryBadge } from '@/lib/types';
-import { PRINTABLE_CONTENT_ID } from './ProposalViewLayout'; // Import the ID
+import { FULL_PROPOSAL_PRINT_ID } from './PrintableProposal'; // Import the ID for the full proposal
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -33,9 +33,10 @@ export function ProposalHeader({ title, clientName, projectType, summaryBadges, 
   const { toast } = useToast();
 
   const handleExportProposal = async () => {
-    const elementToPrint = document.getElementById(PRINTABLE_CONTENT_ID);
+    // Target the new ID for the full proposal content
+    const elementToPrint = document.getElementById(FULL_PROPOSAL_PRINT_ID); 
     if (!elementToPrint) {
-      console.error("Element to print not found:", PRINTABLE_CONTENT_ID);
+      console.error("Element to print not found:", FULL_PROPOSAL_PRINT_ID);
       toast({
         title: "Export Error",
         description: "Could not find proposal content to export.",
@@ -45,37 +46,37 @@ export function ProposalHeader({ title, clientName, projectType, summaryBadges, 
     }
 
     try {
-      // Dynamically import html2pdf.js
       const html2pdf = (await import('html2pdf.js')).default;
       
-      const sanitizedFilename = title.replace(/[\s\\/]/g, '_') || 'Proposal'; // Basic sanitization
+      const sanitizedFilename = title.replace(/[\s\\/]/g, '_') || 'Proposal';
 
       const opt = {
-        margin: 0.5, // inches
-        filename: `${sanitizedFilename}.pdf`,
+        margin: 0.5, 
+        filename: `${sanitizedFilename}_Full.pdf`, // Indicate it's the full proposal
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-          scale: 2, // Improves text clarity
-          useCORS: true, // Important for any external images
-          logging: false, // Disables html2canvas console logs
+          scale: 2, 
+          useCORS: true, 
+          logging: false, 
            onclone: (document: Document) => {
-            // This function is called after the DOM is cloned for printing.
-            // You can apply print-specific styles here if needed.
-            // For example, to ensure all content in scrollable areas is expanded:
             const scrollAreas = document.querySelectorAll('[data-radix-scroll-area-viewport]');
             scrollAreas.forEach(area => {
               (area as HTMLElement).style.height = 'auto';
               (area as HTMLElement).style.overflow = 'visible';
             });
+             // Ensure all content in the cloned document is styled for printing if necessary
+            // For example, if there are elements that are normally hidden but should be visible in PDF:
+            // const hiddenElements = document.querySelectorAll('.hide-on-screen-show-on-print');
+            // hiddenElements.forEach(el => (el as HTMLElement).style.display = 'block');
           }
         },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] as any[] }, // Helps with page breaking logic
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] as any[] }, 
       };
 
       toast({
         title: "Generating PDF...",
-        description: "Your proposal is being converted to PDF. Please wait.",
+        description: "Your full proposal is being converted to PDF. This may take a moment.",
       });
 
       await html2pdf().from(elementToPrint).set(opt).save();
@@ -126,7 +127,7 @@ export function ProposalHeader({ title, clientName, projectType, summaryBadges, 
             </div>
           </div>
           <div className="flex gap-3 mt-4 sm:mt-0 flex-shrink-0 self-start sm:self-center"> 
-            <Button onClick={onAIChatClick} className="bg-primary hover:bg-primary/90 text-primary-foreground"> {/* Changed to primary as per theme */}
+            <Button onClick={onAIChatClick} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               <MessageCircle className="h-4 w-4 mr-2" />
               AI Chat
             </Button>
