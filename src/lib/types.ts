@@ -55,8 +55,8 @@ export type SummaryBadge = z.infer<typeof SummaryBadgeSchema>;
 
 const RequirementsAnalysisSchema = z.object({
   projectRequirementsOverview: z.string().describe("A general overview of the project requirements (1-2 paragraphs)."),
-  functionalRequirements: z.array(z.string()).min(3).max(7).describe("A list of 3-7 key functional requirements."),
-  nonFunctionalRequirements: z.array(z.string()).min(3).max(7).describe("A list of 3-7 key non-functional requirements."),
+  functionalRequirements: z.array(z.string()).describe("A list of key functional requirements."),
+  nonFunctionalRequirements: z.array(z.string()).describe("A list of key non-functional requirements."),
 });
 export type RequirementsAnalysis = z.infer<typeof RequirementsAnalysisSchema>;
 
@@ -78,17 +78,17 @@ const FeatureItemSchema = z.object({
   title: z.string().describe("The title of the feature (e.g., 'User Authentication & Authorization')."),
   description: z.string().describe("A brief description of the feature (e.g., 'User management, role-based access control, session management')."),
   totalHours: z.string().describe("Estimated total hours for this feature (e.g., '72 hours'). DO NOT include cost."),
-  tags: z.array(TagSchema).min(1).max(2).optional().describe("1-2 descriptive tags for the feature."),
-  functionalFeatures: z.array(z.string()).min(2).max(5).optional().describe("A list of 2-5 specific functional sub-features or points."),
-  nonFunctionalRequirements: z.array(z.string()).min(1).max(4).optional().describe("A list of 1-4 related non-functional requirements."),
-  resourceAllocation: z.array(ResourceAllocationItemSchema).min(1).max(3).optional().describe("A list of 1-3 resource allocations for this feature (role and hours). Sum of hours should be reasonable for totalHours. DO NOT include cost.")
+  tags: z.array(TagSchema).optional().describe("Descriptive tags for the feature."),
+  functionalFeatures: z.array(z.string()).optional().describe("A list of specific functional sub-features or points."),
+  nonFunctionalRequirements: z.array(z.string()).optional().describe("A list of related non-functional requirements."),
+  resourceAllocation: z.array(ResourceAllocationItemSchema).optional().describe("A list of resource allocations for this feature (role and hours). Sum of hours should be reasonable for totalHours. DO NOT include cost.")
 });
 export type FeatureItem = z.infer<typeof FeatureItemSchema>;
 
 const FeatureBreakdownSchema = z.object({
   title: z.string().default("Detailed Feature Breakdown").describe("Main title for the feature breakdown section."),
   subtitle: z.string().default("Complete analysis of all features with time estimates. Cost information is omitted.").describe("Subtitle for the feature breakdown section."),
-  features: z.array(FeatureItemSchema).min(2).max(4).describe("A list of 2-4 detailed features.")
+  features: z.array(FeatureItemSchema).describe("A list of detailed features.")
 });
 export type FeatureBreakdown = z.infer<typeof FeatureBreakdownSchema>;
 
@@ -99,13 +99,13 @@ const TimelinePhaseSchema = z.object({
   description: z.string().describe("A brief description of what this phase entails."),
   duration: z.string().describe("Estimated duration of this phase (e.g., '2-3 weeks')."),
   percentageOfProject: z.string().optional().describe("Estimated percentage of total project effort/duration (e.g., '15% of project'). Not cost related."),
-  keyDeliverables: z.array(z.string()).min(2).max(5).describe("A list of 2-5 key deliverables for this phase."),
+  keyDeliverables: z.array(z.string()).describe("A list of key deliverables for this phase."),
 });
 export type TimelinePhase = z.infer<typeof TimelinePhaseSchema>;
 
 const ProjectTimelineSectionSchema = z.object({
   title: z.string().default("Project Timeline & Phases").describe("Overall title for the project timeline section."),
-  phases: z.array(TimelinePhaseSchema).min(3).max(5).describe("A list of 3-5 project phases."),
+  phases: z.array(TimelinePhaseSchema).describe("A list of project phases."),
 });
 export type ProjectTimelineSectionData = z.infer<typeof ProjectTimelineSectionSchema>;
 
@@ -114,19 +114,18 @@ export const StructuredProposalSchema = z.object({
   proposalTitle: z.string().describe("Overall title for the proposal, e.g., 'Cyril - Comprehensive Proposal'."),
   clientName: z.string().describe("The name of the client company."),
   projectType: z.string().describe("The type of project (e.g., web application, mobile app)."),
-  summaryBadges: z.array(SummaryBadgeSchema).length(3).describe("Array of 3 summary badges (timeline, team members, budget)."),
+  summaryBadges: z.array(SummaryBadgeSchema).describe("Array of summary badges (timeline, team members, budget). Should be 3 badges based on prompt."),
 
   executiveSummary: z.object({
     summaryText: z.string().describe("The main text for the executive summary, around 50-100 words."),
-    highlights: z.array(HighlightItemSchema).length(3).describe("Array of 3 key highlight cards: Timeline, Total Hours, Team Size."),
-    projectGoals: z.array(ProjectGoalSchema).min(2).max(5).describe("A list of 2-5 key project goals and objectives."),
+    highlights: z.array(HighlightItemSchema).describe("Array of key highlight cards: Timeline, Total Hours, Team Size. Should be 3 highlights based on prompt."),
+    projectGoals: z.array(ProjectGoalSchema).describe("A list of key project goals and objectives. Prompt asks for 2-5."),
   }),
-  requirementsAnalysis: RequirementsAnalysisSchema,
-  featureBreakdown: FeatureBreakdownSchema,
-  projectTimelineSection: ProjectTimelineSectionSchema,
+  requirementsAnalysis: RequirementsAnalysisSchema, // Prompt asks for 3-7 items in arrays
+  featureBreakdown: FeatureBreakdownSchema, // Prompt asks for 2-4 features, and specific counts for sub-arrays
+  projectTimelineSection: ProjectTimelineSectionSchema, // Prompt asks for 3-5 phases
   teamAndResources: z.object({
     content: z.string().describe("Detailed content for Team & Resources section (at least 2-3 paragraphs).")
   }),
 });
 export type StructuredProposal = z.infer<typeof StructuredProposalSchema>;
-

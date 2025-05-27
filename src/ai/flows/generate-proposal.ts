@@ -115,50 +115,20 @@ const generateProposalFlow = ai.defineFlow(
     if (!output) {
       throw new Error("AI failed to generate a structured proposal.");
     }
-    // Basic validation checks
-    if (output.summaryBadges?.length !== 3) {
-        console.warn("AI generated incorrect number of summary badges. Expected 3, got:", output.summaryBadges?.length);
+    // Basic validation checks based on prompt guidance (not strict schema anymore)
+    if (output.summaryBadges?.length && output.summaryBadges?.length !== 3) {
+        console.warn("AI generated a number of summary badges different from prompt guidance. Expected 3, got:", output.summaryBadges?.length);
     }
-    if (output.executiveSummary?.highlights?.length !== 3) { 
-        console.warn("AI generated incorrect number of highlights. Expected 3, got:", output.executiveSummary?.highlights?.length);
+    if (output.executiveSummary?.highlights?.length && output.executiveSummary?.highlights?.length !== 3) { 
+        console.warn("AI generated a number of highlights different from prompt guidance. Expected 3, got:", output.executiveSummary?.highlights?.length);
     }
-    if (output.executiveSummary?.projectGoals?.length < 2 || output.executiveSummary?.projectGoals?.length > 5) {
-        console.warn("AI generated incorrect number of project goals. Expected 2-5, got:", output.executiveSummary?.projectGoals?.length);
-    }
-    if (output.requirementsAnalysis?.functionalRequirements?.length < 3 || output.requirementsAnalysis?.functionalRequirements?.length > 7) {
-        console.warn("AI generated incorrect number of functional requirements. Expected 3-7, got:", output.requirementsAnalysis?.functionalRequirements?.length);
-    }
-     if (output.requirementsAnalysis?.nonFunctionalRequirements?.length < 3 || output.requirementsAnalysis?.nonFunctionalRequirements?.length > 7) {
-        console.warn("AI generated incorrect number of non-functional requirements. Expected 3-7, got:", output.requirementsAnalysis?.nonFunctionalRequirements?.length);
-    }
-    if (output.featureBreakdown?.features?.length < 2 || output.featureBreakdown?.features?.length > 4) {
-        console.warn("AI generated incorrect number of features in feature breakdown. Expected 2-4, got:", output.featureBreakdown?.features?.length);
-    }
-    output.featureBreakdown?.features?.forEach(feature => {
-        if (feature.tags && (feature.tags.length < 1 || feature.tags.length > 2) && feature.tags.length !== 0) { // Allow 0 if optional and not provided
-             console.warn(`AI generated incorrect number of tags for feature "${feature.title}". Expected 1-2 or 0, got:`, feature.tags.length);
-        }
-        if (feature.functionalFeatures && (feature.functionalFeatures.length < 2 || feature.functionalFeatures.length > 5) && feature.functionalFeatures.length !== 0) {
-             console.warn(`AI generated incorrect number of functional features for "${feature.title}". Expected 2-5 or 0, got:`, feature.functionalFeatures.length);
-        }
-        if (feature.nonFunctionalRequirements && (feature.nonFunctionalRequirements.length < 1 || feature.nonFunctionalRequirements.length > 4) && feature.nonFunctionalRequirements.length !== 0) {
-             console.warn(`AI generated incorrect number of non-functional requirements for "${feature.title}". Expected 1-4 or 0, got:`, feature.nonFunctionalRequirements.length);
-        }
-        if (feature.resourceAllocation && (feature.resourceAllocation.length < 1 || feature.resourceAllocation.length > 3) && feature.resourceAllocation.length !== 0) {
-            console.warn(`AI generated incorrect number of resource allocations for "${feature.title}". Expected 1-3 or 0, got:`, feature.resourceAllocation.length);
-        }
-    });
-    if (output.projectTimelineSection?.phases?.length < 3 || output.projectTimelineSection?.phases?.length > 5) {
-        console.warn("AI generated incorrect number of project timeline phases. Expected 3-5, got:", output.projectTimelineSection?.phases?.length);
-    }
-    output.projectTimelineSection?.phases?.forEach(phase => {
-        if (phase.keyDeliverables?.length < 2 || phase.keyDeliverables?.length > 5) {
-            console.warn(`AI generated incorrect number of key deliverables for phase "${phase.title}". Expected 2-5, got:`, phase.keyDeliverables?.length);
-        }
-    });
-
+    // Other count checks can be added here as warnings if desired,
+    // but they are no longer strict schema violations.
+    // Example:
+    // if (output.executiveSummary?.projectGoals?.length && (output.executiveSummary.projectGoals.length < 2 || output.executiveSummary.projectGoals.length > 5)) {
+    //     console.warn("AI generated a number of project goals outside prompt guidance. Prompt asked for 2-5, got:", output.executiveSummary.projectGoals.length);
+    // }
 
     return output;
   }
 );
-
