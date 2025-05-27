@@ -86,12 +86,12 @@ export function ProposalViewLayout({ initialProposal }: ProposalViewLayoutProps)
           break;
         default:
           const exhaustiveCheck: never = sectionKey; // Ensures all cases are handled
-          throw new Error(\`Unknown section key: \${exhaustiveCheck}\`);
+          throw new Error(`Unknown section key: ${exhaustiveCheck}`);
       }
       setCurrentProposal(updatedProposal);
       sessionStorage.setItem(SESSION_STORAGE_KEY_CURRENT_PROPOSAL, JSON.stringify(updatedProposal));
       // Toast is now handled by the modal on success/failure
-      // toast({ title: "Section Updated", description: \`\${sectionKey} has been updated by AI.\` });
+      // toast({ title: "Section Updated", description: `${sectionKey} has been updated by AI.` });
     } catch (e) {
       console.error("Error applying AI edit:", e);
       toast({ title: "Update Failed", description: "AI returned invalid data or an error occurred.", variant: "destructive" });
