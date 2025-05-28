@@ -30,15 +30,15 @@ export async function handleGenerateProposalAction(
       if (teamCompositionData.businessAnalyst && teamCompositionData.businessAnalyst > 0) {
         teamParts.push(`${teamCompositionData.businessAnalyst} Business Analyst${teamCompositionData.businessAnalyst > 1 ? 's' : ''}`);
       }
-      // Boolean roles
-      if (teamCompositionData.uiUxDesigner) {
-        teamParts.push('UI/UX Designer');
+      // Number roles (previously boolean)
+      if (teamCompositionData.uiUxDesigner && teamCompositionData.uiUxDesigner > 0) {
+        teamParts.push(`${teamCompositionData.uiUxDesigner} UI/UX Designer${teamCompositionData.uiUxDesigner > 1 ? 's' : ''}`);
       }
-      if (teamCompositionData.qaEngineer) {
-        teamParts.push('QA Engineer');
+      if (teamCompositionData.qaEngineer && teamCompositionData.qaEngineer > 0) {
+        teamParts.push(`${teamCompositionData.qaEngineer} QA Engineer${teamCompositionData.qaEngineer > 1 ? 's' : ''}`);
       }
-      if (teamCompositionData.projectManager) {
-        teamParts.push('Project Manager');
+      if (teamCompositionData.projectManager && teamCompositionData.projectManager > 0) {
+        teamParts.push(`${teamCompositionData.projectManager} Project Manager${teamCompositionData.projectManager > 1 ? 's' : ''}`);
       }
     }
     const finalTeamCompositionString = teamParts.join(', ');
@@ -70,3 +70,4 @@ export async function handleImproveSectionAction(
     return { error: errorMessage };
   }
 }
+

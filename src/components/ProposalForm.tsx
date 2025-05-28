@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+// Checkbox is no longer directly used here for these roles, but kept for potential future use / other checkboxes
+// import { Checkbox } from "@/components/ui/checkbox"; 
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -32,9 +33,9 @@ const teamCompositionRoles = [
   { id: "frontendDeveloper", label: "Frontend Developers", type: "number", max: 10 },
   { id: "backendDeveloper", label: "Backend Developers", type: "number", max: 10 },
   { id: "businessAnalyst", label: "Business Analysts", type: "number", max: 5 },
-  { id: "uiUxDesigner", label: "UI/UX Designer", type: "checkbox" },
-  { id: "qaEngineer", label: "QA Engineer", type: "checkbox" },
-  { id: "projectManager", label: "Project Manager", type: "checkbox" },
+  { id: "uiUxDesigner", label: "UI/UX Designers", type: "number", max: 5 }, // Changed
+  { id: "qaEngineer", label: "QA Engineers", type: "number", max: 5 }, // Changed
+  { id: "projectManager", label: "Project Managers", type: "number", max: 5 }, // Changed
 ] as const;
 
 
@@ -50,10 +51,10 @@ export function ProposalForm({ onGenerate, initialData, isGenerating }: Proposal
       teamComposition: {
         frontendDeveloper: 0,
         backendDeveloper: 0,
-        uiUxDesigner: false,
-        qaEngineer: false,
+        uiUxDesigner: 0, // Changed
+        qaEngineer: 0, // Changed
         businessAnalyst: 0,
-        projectManager: false,
+        projectManager: 0, // Changed
       },
       ...initialData,
     },
@@ -68,10 +69,10 @@ export function ProposalForm({ onGenerate, initialData, isGenerating }: Proposal
         teamComposition: {
           frontendDeveloper: initialData.teamComposition?.frontendDeveloper || 0,
           backendDeveloper: initialData.teamComposition?.backendDeveloper || 0,
-          uiUxDesigner: initialData.teamComposition?.uiUxDesigner || false,
-          qaEngineer: initialData.teamComposition?.qaEngineer || false,
+          uiUxDesigner: initialData.teamComposition?.uiUxDesigner || 0, // Changed
+          qaEngineer: initialData.teamComposition?.qaEngineer || 0, // Changed
           businessAnalyst: initialData.teamComposition?.businessAnalyst || 0,
-          projectManager: initialData.teamComposition?.projectManager || false,
+          projectManager: initialData.teamComposition?.projectManager || 0, // Changed
         },
       });
     }
@@ -132,58 +133,34 @@ export function ProposalForm({ onGenerate, initialData, isGenerating }: Proposal
 
             <div>
               <FormLabel>Team Composition</FormLabel>
-              <FormDescription className="mb-2">Select roles and specify quantities for the project (optional).</FormDescription>
+              <FormDescription className="mb-2">Specify quantities for each role required for the project (optional).</FormDescription>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 pt-1">
                 {teamCompositionRoles.map((role) => {
-                  if (role.type === 'number') {
-                    return (
-                      <FormField
-                        key={role.id}
-                        control={form.control}
-                        name={`teamComposition.${role.id}`}
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormLabel>{role.label}</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="0"
-                                max={role.max}
-                                placeholder="0"
-                                {...field}
-                                value={field.value || 0}
-                                onChange={(e) => {
-                                  const value = parseInt(e.target.value, 10);
-                                  field.onChange(isNaN(value) ? 0 : value);
-                                }}
-                                className="w-full"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    );
-                  }
-                  // else role.type === 'checkbox'
+                  // All roles are now 'number' type based on the request
                   return (
                     <FormField
                       key={role.id}
                       control={form.control}
                       name={`teamComposition.${role.id}`}
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 shadow-sm bg-background hover:bg-muted/50 transition-colors h-[4.5rem] justify-between">
-                           {/* Adjust height to match number inputs better if needed or wrap label */}
-                          <FormLabel htmlFor={`team-${role.id}`} className="font-normal text-sm leading-none cursor-pointer flex-grow">
-                            {role.label}
-                          </FormLabel>
+                        <FormItem className="space-y-1">
+                          <FormLabel>{role.label}</FormLabel>
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              id={`team-${role.id}`}
+                            <Input
+                              type="number"
+                              min="0"
+                              max={role.max}
+                              placeholder="0"
+                              {...field}
+                              value={field.value || 0} // Ensure value is a number
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value, 10);
+                                field.onChange(isNaN(value) ? 0 : value);
+                              }}
+                              className="w-full"
                             />
                           </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -214,3 +191,4 @@ export function ProposalForm({ onGenerate, initialData, isGenerating }: Proposal
     </Card>
   );
 }
+

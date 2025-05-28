@@ -8,17 +8,17 @@ export const proposalFormSchema = z.object({
   teamComposition: z.object({
     frontendDeveloper: z.number().int().min(0).max(10).optional().default(0),
     backendDeveloper: z.number().int().min(0).max(10).optional().default(0),
-    uiUxDesigner: z.boolean().optional().default(false),
-    qaEngineer: z.boolean().optional().default(false),
+    uiUxDesigner: z.number().int().min(0).max(5).optional().default(0), // Changed from boolean
+    qaEngineer: z.number().int().min(0).max(5).optional().default(0), // Changed from boolean
     businessAnalyst: z.number().int().min(0).max(5).optional().default(0),
-    projectManager: z.boolean().optional().default(false),
+    projectManager: z.number().int().min(0).max(5).optional().default(0), // Changed from boolean
   }).default({
     frontendDeveloper: 0,
     backendDeveloper: 0,
-    uiUxDesigner: false,
-    qaEngineer: false,
+    uiUxDesigner: 0, // Default to 0
+    qaEngineer: 0, // Default to 0
     businessAnalyst: 0,
-    projectManager: false,
+    projectManager: 0, // Default to 0
   }),
 });
 
