@@ -6,13 +6,20 @@ export const proposalFormSchema = z.object({
   projectName: z.string().min(1, 'Project Name is required.'),
   basicRequirements: z.string().min(10, 'Basic Requirements must be at least 10 characters.'),
   teamComposition: z.object({
-    frontendDeveloper: z.boolean().default(false).optional(),
-    backendDeveloper: z.boolean().default(false).optional(),
-    uiUxDesigner: z.boolean().default(false).optional(),
-    qaEngineer: z.boolean().default(false).optional(),
-    businessAnalyst: z.boolean().default(false).optional(),
-    projectManager: z.boolean().default(false).optional(),
-  }).default({}),
+    frontendDeveloper: z.number().int().min(0).max(10).optional().default(0),
+    backendDeveloper: z.number().int().min(0).max(10).optional().default(0),
+    uiUxDesigner: z.boolean().optional().default(false),
+    qaEngineer: z.boolean().optional().default(false),
+    businessAnalyst: z.number().int().min(0).max(5).optional().default(0),
+    projectManager: z.boolean().optional().default(false),
+  }).default({
+    frontendDeveloper: 0,
+    backendDeveloper: 0,
+    uiUxDesigner: false,
+    qaEngineer: false,
+    businessAnalyst: 0,
+    projectManager: false,
+  }),
 });
 
 export type ProposalFormData = z.infer<typeof proposalFormSchema>;
@@ -55,8 +62,8 @@ export type SummaryBadge = z.infer<typeof SummaryBadgeSchema>;
 
 const RequirementsAnalysisSchema = z.object({
   projectRequirementsOverview: z.string().describe("A general overview of the project requirements (1-2 paragraphs)."),
-  functionalRequirements: z.array(z.string()).describe("A list of key functional requirements."),
-  nonFunctionalRequirements: z.array(z.string()).describe("A list of key non-functional requirements."),
+  functionalRequirements: z.array(z.string()).optional().describe("A list of key functional requirements."),
+  nonFunctionalRequirements: z.array(z.string()).optional().describe("A list of key non-functional requirements."),
 });
 export type RequirementsAnalysis = z.infer<typeof RequirementsAnalysisSchema>;
 
@@ -88,7 +95,7 @@ export type FeatureItem = z.infer<typeof FeatureItemSchema>;
 const FeatureBreakdownSchema = z.object({
   title: z.string().default("Detailed Feature Breakdown").describe("Main title for the feature breakdown section."),
   subtitle: z.string().default("Complete analysis of all features with time estimates. Cost information is omitted.").describe("Subtitle for the feature breakdown section."),
-  features: z.array(FeatureItemSchema).describe("A list of detailed features.")
+  features: z.array(FeatureItemSchema).optional().describe("A list of detailed features.")
 });
 export type FeatureBreakdown = z.infer<typeof FeatureBreakdownSchema>;
 
@@ -99,13 +106,13 @@ const TimelinePhaseSchema = z.object({
   description: z.string().describe("A brief description of what this phase entails."),
   duration: z.string().describe("Estimated duration of this phase (e.g., '2-3 weeks')."),
   percentageOfProject: z.string().optional().describe("Estimated percentage of total project effort/duration (e.g., '15% of project'). Not cost related."),
-  keyDeliverables: z.array(z.string()).describe("A list of key deliverables for this phase."),
+  keyDeliverables: z.array(z.string()).optional().describe("A list of key deliverables for this phase."),
 });
 export type TimelinePhase = z.infer<typeof TimelinePhaseSchema>;
 
 const ProjectTimelineSectionSchema = z.object({
   title: z.string().default("Project Timeline & Phases").describe("Overall title for the project timeline section."),
-  phases: z.array(TimelinePhaseSchema).describe("A list of project phases."),
+  phases: z.array(TimelinePhaseSchema).optional().describe("A list of project phases."),
 });
 export type ProjectTimelineSectionData = z.infer<typeof ProjectTimelineSectionSchema>;
 
@@ -121,15 +128,15 @@ export type RoleAllocation = z.infer<typeof RoleAllocationSchema>;
 
 const RoleResponsibilitiesSchema = z.object({
   roleName: z.string().describe("Name of the team role (e.g., Frontend Developer)."),
-  responsibilities: z.array(z.string()).describe("List of key responsibilities for this role.") // Prompt guides for 2-5 items
+  responsibilities: z.array(z.string()).optional().describe("List of key responsibilities for this role.") 
 });
 export type RoleResponsibilities = z.infer<typeof RoleResponsibilitiesSchema>;
 
 const TeamAndResourcesSchema = z.object({
   teamAllocationTitle: z.string().default("Team Allocation & Resource Planning").describe("Title for the team allocation subsection."),
-  teamAllocations: z.array(RoleAllocationSchema).describe("List of resource allocations per role. IMPORTANT: Do NOT include 'Hourly Rate' or 'Total Cost' in the output for any role."),
+  teamAllocations: z.array(RoleAllocationSchema).optional().describe("List of resource allocations per role. IMPORTANT: Do NOT include 'Hourly Rate' or 'Total Cost' in the output for any role."),
   teamStructureTitle: z.string().default("Team Structure & Responsibilities").describe("Title for the team structure subsection."),
-  teamStructure: z.array(RoleResponsibilitiesSchema).describe("List of responsibilities per role.")
+  teamStructure: z.array(RoleResponsibilitiesSchema).optional().describe("List of responsibilities per role.")
 });
 export type TeamAndResources = z.infer<typeof TeamAndResourcesSchema>;
 
@@ -138,17 +145,17 @@ export const StructuredProposalSchema = z.object({
   proposalTitle: z.string().describe("Overall title for the proposal, e.g., 'Cyril - Comprehensive Proposal'."),
   clientName: z.string().describe("The name of the client company."),
   projectType: z.string().describe("The type of project (e.g., web application, mobile app)."),
-  summaryBadges: z.array(SummaryBadgeSchema).describe("Array of summary badges (timeline, team members). Should be 2 badges based on prompt. No monetary values."),
+  summaryBadges: z.array(SummaryBadgeSchema).optional().describe("Array of summary badges (timeline, team members). Should be 2 badges based on prompt. No monetary values."),
 
   executiveSummary: z.object({
     summaryText: z.string().describe("The main text for the executive summary, around 50-100 words."),
-    highlights: z.array(HighlightItemSchema).describe("Array of key highlight cards: Timeline, Total Hours, Team Size. Should be 3 highlights based on prompt."),
-    projectGoals: z.array(ProjectGoalSchema).describe("A list of key project goals and objectives."), // Prompt asks for 2-5
+    highlights: z.array(HighlightItemSchema).optional().describe("Array of key highlight cards: Timeline, Total Hours, Team Size. Should be 3 highlights based on prompt."),
+    projectGoals: z.array(ProjectGoalSchema).optional().describe("A list of key project goals and objectives."), 
   }),
-  requirementsAnalysis: RequirementsAnalysisSchema,
-  featureBreakdown: FeatureBreakdownSchema, 
-  projectTimelineSection: ProjectTimelineSectionSchema,
-  teamAndResources: TeamAndResourcesSchema,
+  requirementsAnalysis: RequirementsAnalysisSchema.optional(),
+  featureBreakdown: FeatureBreakdownSchema.optional(), 
+  projectTimelineSection: ProjectTimelineSectionSchema.optional(),
+  teamAndResources: TeamAndResourcesSchema.optional(),
 });
 export type StructuredProposal = z.infer<typeof StructuredProposalSchema>;
 
@@ -159,3 +166,4 @@ export type ProposalSectionKey =
   | 'featureBreakdown' 
   | 'projectTimelineSection' 
   | 'teamAndResources';
+
