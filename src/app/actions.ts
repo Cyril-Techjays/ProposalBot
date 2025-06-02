@@ -53,7 +53,14 @@ export async function handleGenerateProposalAction(
     return { proposal: result };
   } catch (error) {
     console.error("Error generating proposal:", error);
-    const errorMessage = (error instanceof Error) ? error.message : "Failed to generate proposal. Please try again.";
+    let errorMessage = "Failed to generate proposal. Please try again.";
+    if (error instanceof Error) {
+      if (error.message.includes("[503 Service Unavailable]") || error.message.toLowerCase().includes("is overloaded")) {
+        errorMessage = "The AI service is currently busy. Please try again in a few moments.";
+      } else {
+        errorMessage = error.message;
+      }
+    }
     return { error: errorMessage };
   }
 }
@@ -66,7 +73,14 @@ export async function handleImproveSectionAction(
     return { improvedContent: result.improvedContent };
   } catch (error) {
     console.error("Error improving section with AI:", error);
-    const errorMessage = (error instanceof Error) ? error.message : "Failed to improve section. Please try again.";
+    let errorMessage = "Failed to improve section. Please try again.";
+     if (error instanceof Error) {
+      if (error.message.includes("[503 Service Unavailable]") || error.message.toLowerCase().includes("is overloaded")) {
+        errorMessage = "The AI service is currently busy. Please try again in a few moments.";
+      } else {
+        errorMessage = error.message;
+      }
+    }
     return { error: errorMessage };
   }
 }
