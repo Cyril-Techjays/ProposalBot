@@ -81,19 +81,21 @@ const improveSectionFlow = ai.defineFlow(
   },
   async (input: ImproveSectionInput) : Promise<ImproveSectionOutput> => {
     const {output} = await improveSectionGenkitPrompt(input);
-    if (!output?.improvedSectionContent) {
-      throw new Error("AI failed to generate improved section content or returned empty content.");
+
+    // Explicitly check if improvedSectionContent is undefined or null.
+    // An empty string is permissible here and will be handled by JSON.parse or returned as is.
+    if (output?.improvedSectionContent === undefined || output?.improvedSectionContent === null) {
+      console.warn(`AI prompt for 'improveSectionPrompt' returned undefined or null for improvedSectionContent. Input: ${JSON.stringify(input)}`);
+      throw new Error("AI failed to generate improved section content (it was undefined or null directly from AI prompt).");
     }
     
-    let rawAiOutput = output.improvedSectionContent;
+    let rawAiOutput = output.improvedSectionContent; // Now we know it's at least a string (could be empty)
     let processedContent = rawAiOutput;
 
-    // Attempt to strip markdown code fences if present
     const jsonMarkdownMatch = rawAiOutput.match(/```json\s*([\s\S]*?)\s*```/s);
     if (jsonMarkdownMatch && jsonMarkdownMatch[1]) {
       processedContent = jsonMarkdownMatch[1];
     }
-    // Trim whitespace that might make JSON.parse fail
     processedContent = processedContent.trim();
 
     const isJsonSection = [
@@ -106,10 +108,8 @@ const improveSectionFlow = ai.defineFlow(
 
     if (isJsonSection) {
         try {
-            // This is the raw string from AI (after cleanup)
             const parsedData = JSON.parse(processedContent); 
 
-            // Perform specific validations/warnings on parsedData (does not modify parsedData)
             if (input.sectionKey === 'executiveSummary') {
                 if (parsedData.summaryText && /[$\u20AC\u00A3\u00A5\u20B9]/.test(parsedData.summaryText)) {
                     console.warn("AI included monetary symbol in executiveSummary.summaryText after edit.");
@@ -146,8 +146,6 @@ const improveSectionFlow = ai.defineFlow(
                 });
             }
             
-            // Re-stringify the parsed data to ensure it's a canonical JSON string for the client.
-            // This is the crucial step to prevent client-side parsing issues if the server-side parse was too lenient.
             processedContent = JSON.stringify(parsedData);
 
         } catch (e) {
@@ -155,14 +153,18 @@ const improveSectionFlow = ai.defineFlow(
               `AI returned invalid JSON for section '${input.sectionKey}'. User prompt: "${input.userPrompt}". Original AI Output: <<<${rawAiOutput}>>> Processed for Parse: <<<${processedContent}>>>`, 
               e
             );
-            // The 'processedContent' logged here is before JSON.stringify if parse failed.
             throw new Error(
               `The AI's response for the '${input.sectionKey}' section was not valid JSON and could not be automatically corrected. Please try rephrasing your request. (AI output snippet: "${rawAiOutput.substring(0, 70)}${rawAiOutput.length > 70 ? '...' : ''}". Full details logged on server).`
             );
         }
     }
 
-    // Return the cleaned/processed (and re-stringified if JSON) content
+    if (typeof processedContent !== 'string') {
+        // This should be an exceptionally rare case if logic above is correct.
+        console.error("Critical internal error in improveSectionFlow: processedContent is not a string before returning. Original AI output was:", rawAiOutput);
+        throw new Error("Internal error: Processed AI content became invalid (not a string) before returning from flow.");
+    }
+
     return {
         improvedSectionContent: processedContent, 
     };

@@ -54,7 +54,7 @@ export async function handleGenerateProposalAction(
       } else if (error.message) {
         errorMessage = error.message;
       } else {
-        errorMessage = "An unexpected error occurred while generating the proposal. Please try again.";
+        errorMessage = "An unexpected error occurred while generating the proposal (empty error message). Please try again.";
       }
     }
     return { error: errorMessage };
@@ -66,9 +66,12 @@ export async function handleImproveSectionAction(
 ): Promise<{ improvedContent?: string; error?: string }> {
   try {
     const result: ImproveSectionOutput = await genkitImproveSection(input);
+    
+    // This check is critical for the error message the user is seeing.
+    // If the flow completes but improvedContent is undefined/null, this indicates an issue.
      if (result.improvedContent === undefined || result.improvedContent === null) {
-        console.warn("handleImproveSectionAction: genkitImproveSection returned success but with no improvedContent.");
-        return { error: "AI returned empty content unexpectedly. Please try again." };
+        console.warn("handleImproveSectionAction: genkitImproveSection (AI flow) returned successfully but 'improvedContent' was undefined or null. This is unexpected as the flow should ensure a string or throw an error. Input:", input);
+        return { error: "AI returned empty or invalid content structure unexpectedly after processing. Please try again." };
     }
     return { improvedContent: result.improvedContent };
   } catch (error) {
@@ -80,16 +83,18 @@ export async function handleImproveSectionAction(
         if (error.message.includes("[503 Service Unavailable]") || error.message.toLowerCase().includes("is overloaded")) {
           errorMessage = "The AI service is currently busy. Please try again in a few moments.";
         } else if (error.message.includes("The AI's response for the") && error.message.includes("section was not valid JSON")) {
-          // Pass through the more specific JSON parsing error message from the flow
+          errorMessage = error.message;
+        } else if (error.message.includes("AI failed to generate improved section content")) { // Catch specific errors from the flow
           errorMessage = error.message;
         }
          else {
-          errorMessage = error.message;
+          errorMessage = error.message; // Default to the error's message if it exists
         }
       } else {
-        errorMessage = "AI processing failed with an unspecified error. Please try rephrasing your request or try again later.";
+        errorMessage = "AI processing failed with an unspecified error (empty error message). Please try rephrasing your request or try again later.";
       }
     }
     return { error: errorMessage };
   }
 }
+
