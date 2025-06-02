@@ -57,8 +57,10 @@ export async function handleGenerateProposalAction(
     if (error instanceof Error) {
       if (error.message.includes("[503 Service Unavailable]") || error.message.toLowerCase().includes("is overloaded")) {
         errorMessage = "The AI service is currently busy. Please try again in a few moments.";
-      } else {
+      } else if (error.message) { // Check if message is not empty
         errorMessage = error.message;
+      } else {
+        errorMessage = "An unexpected error occurred during proposal generation.";
       }
     }
     return { error: errorMessage };
@@ -70,15 +72,25 @@ export async function handleImproveSectionAction(
 ): Promise<{ improvedContent?: string; error?: string }> {
   try {
     const result: ImproveSectionOutput = await genkitImproveSection(input);
+     if (result.improvedContent === undefined || result.improvedContent === null) {
+        console.warn("handleImproveSectionAction: genkitImproveSection returned success but with no improvedContent.");
+        return { error: "AI returned empty content unexpectedly. Please try again." };
+    }
     return { improvedContent: result.improvedContent };
   } catch (error) {
-    console.error("Error improving section with AI:", error);
-    let errorMessage = "Failed to improve section. Please try again.";
-     if (error instanceof Error) {
-      if (error.message.includes("[503 Service Unavailable]") || error.message.toLowerCase().includes("is overloaded")) {
-        errorMessage = "The AI service is currently busy. Please try again in a few moments.";
+    console.error("Error improving section with AI:", error); // This log is crucial
+    let errorMessage = "An unexpected error occurred while improving the section. Please check server logs for details.";
+
+    if (error instanceof Error) {
+      if (error.message) { // Check if message is not empty
+        if (error.message.includes("[503 Service Unavailable]") || error.message.toLowerCase().includes("is overloaded")) {
+          errorMessage = "The AI service is currently busy. Please try again in a few moments.";
+        } else {
+          errorMessage = error.message; // Use the specific error message from the flow
+        }
       } else {
-        errorMessage = error.message;
+        // error.message is empty, provide a specific default
+        errorMessage = "AI processing failed with an unspecified error. Please try rephrasing your request or try again later.";
       }
     }
     return { error: errorMessage };
