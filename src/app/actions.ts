@@ -6,12 +6,7 @@ import { generateProposal as genkitGenerateProposal, GenerateProposalInput } fro
 import { improveSection as genkitImproveSection, ImproveSectionInput, ImproveSectionOutput } from "@/ai/flows/improve-section";
 import type { ProposalFormData, StructuredProposal } from "@/lib/types";
 
-// Helper function to convert camelCase to Title Case (already present, reused)
-function camelToTitleCase(str: string): string {
-  return str
-    .replace(/([A-Z])/g, ' $1') 
-    .replace(/^./, (s) => s.toUpperCase());
-}
+// Removed unused camelToTitleCase function
 
 export async function handleGenerateProposalAction(
   data: ProposalFormData
@@ -30,7 +25,6 @@ export async function handleGenerateProposalAction(
       if (teamCompositionData.businessAnalyst && teamCompositionData.businessAnalyst > 0) {
         teamParts.push(`${teamCompositionData.businessAnalyst} Business Analyst${teamCompositionData.businessAnalyst > 1 ? 's' : ''}`);
       }
-      // Number roles (previously boolean)
       if (teamCompositionData.uiUxDesigner && teamCompositionData.uiUxDesigner > 0) {
         teamParts.push(`${teamCompositionData.uiUxDesigner} UI/UX Designer${teamCompositionData.uiUxDesigner > 1 ? 's' : ''}`);
       }
@@ -57,10 +51,10 @@ export async function handleGenerateProposalAction(
     if (error instanceof Error) {
       if (error.message.includes("[503 Service Unavailable]") || error.message.toLowerCase().includes("is overloaded")) {
         errorMessage = "The AI service is currently busy. Please try again in a few moments.";
-      } else if (error.message) { // Check if message is not empty
+      } else if (error.message) { 
         errorMessage = error.message;
       } else {
-        errorMessage = "An unexpected error occurred during proposal generation.";
+        errorMessage = "An unexpected error occurred while generating the proposal. Please try again.";
       }
     }
     return { error: errorMessage };
@@ -78,22 +72,20 @@ export async function handleImproveSectionAction(
     }
     return { improvedContent: result.improvedContent };
   } catch (error) {
-    console.error("Error improving section with AI:", error); // This log is crucial
+    console.error("Error improving section with AI:", error); 
     let errorMessage = "An unexpected error occurred while improving the section. Please check server logs for details.";
 
     if (error instanceof Error) {
-      if (error.message) { // Check if message is not empty
+      if (error.message) { 
         if (error.message.includes("[503 Service Unavailable]") || error.message.toLowerCase().includes("is overloaded")) {
           errorMessage = "The AI service is currently busy. Please try again in a few moments.";
         } else {
-          errorMessage = error.message; // Use the specific error message from the flow
+          errorMessage = error.message; 
         }
       } else {
-        // error.message is empty, provide a specific default
-        errorMessage = "AI processing failed with an unspecified error. Please try rephrasing your request or try again later.";
+        errorMessage = "An unexpected error occurred while improving the section. Please try rephrasing or try again later.";
       }
     }
     return { error: errorMessage };
   }
 }
-
