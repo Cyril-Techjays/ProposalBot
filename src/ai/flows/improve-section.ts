@@ -144,9 +144,12 @@ const improveSectionFlow = ai.defineFlow(
                     }
                 });
             }
+            // Re-stringify the parsed (and validated) data to ensure it's a canonical JSON string for the client
+            processedContent = JSON.stringify(parsedData);
+
         } catch (e) {
             console.error(
-              `AI returned invalid JSON for section '${input.sectionKey}'. User prompt: "${input.userPrompt}". Original AI Output: <<<${rawAiOutput}>>> Processed for Parse: <<<${processedContent}>>>`,
+              `AI returned invalid JSON for section '${input.sectionKey}'. User prompt: "${input.userPrompt}". Original AI Output: <<<${rawAiOutput}>>> Processed for Parse: <<<${processedContent}>>>`, // Log original processedContent before re-stringify attempt
               e
             );
             throw new Error(
@@ -156,7 +159,7 @@ const improveSectionFlow = ai.defineFlow(
     }
 
     return {
-        improvedSectionContent: processedContent, // Return the cleaned/processed content
+        improvedSectionContent: processedContent, // Return the cleaned/processed (and re-stringified if JSON) content
     };
   }
 );
