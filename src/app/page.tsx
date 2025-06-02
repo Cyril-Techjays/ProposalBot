@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useTransition } from 'react';
@@ -5,14 +6,13 @@ import { useRouter } from 'next/navigation';
 import { Footer } from '@/components/Footer';
 import { ProposalForm } from '@/components/ProposalForm';
 // ProposalDisplay is not used directly on this page anymore for the main generated proposal
-// import { ProposalDisplay } from '@/components/ProposalDisplay'; 
-import type { SavedProposal, ProposalFormData, StructuredProposal } from '@/lib/types';
+// SavedProposalsList is also removed as part of simplifying to structured proposals
+import type { ProposalFormData, StructuredProposal } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { handleGenerateProposalAction } from './actions';
 
-
-const LOCAL_STORAGE_KEY_SIMPLE_SAVE = 'aiProposalGenerator_savedProposals_v2';
+// Removed LOCAL_STORAGE_KEY_SIMPLE_SAVE
 const SESSION_STORAGE_KEY_CURRENT_PROPOSAL = 'currentGeneratedProposalData';
 
 export default function HomePage() {
@@ -20,22 +20,13 @@ export default function HomePage() {
   const { toast } = useToast();
   const [isGenerating, startGeneratingTransition] = useTransition();
 
-  // State for simple text-based saved proposals (existing functionality)
-  const [savedSimpleProposals, setSavedSimpleProposals] = useState<SavedProposal[]>([]);
-  const [isLoadingPage, setIsLoadingPage] = useState(true);
+  // Removed state for simple text-based saved proposals
+  // const [savedSimpleProposals, setSavedSimpleProposals] = useState<SavedProposal[]>([]);
+  const [isLoadingPage, setIsLoadingPage] = useState(true); // Keep for initial page load visual
   
   useEffect(() => {
-    setIsLoadingPage(true);
-    try {
-      const items = localStorage.getItem(LOCAL_STORAGE_KEY_SIMPLE_SAVE);
-      if (items) {
-        setSavedSimpleProposals(JSON.parse(items));
-      }
-    } catch (error) {
-      console.error("Failed to load simple proposals from localStorage", error);
-      // toast({ title: "Error", description: "Could not load saved proposals.", variant: "destructive" });
-    }
-    setIsLoadingPage(false);
+    // Minimal effect, can be expanded if other async setup is needed
+    setIsLoadingPage(false); 
   }, []);
 
   const handleProposalFormSubmit = (formData: ProposalFormData) => {
@@ -67,21 +58,7 @@ export default function HomePage() {
     });
   };
   
-  // This function is for the old simple save, kept for potential future use or if ProposalDisplay (simple version) is reintroduced
-  const handleSaveSimpleProposal = (
-    proposalDataToSave: Omit<SavedProposal, 'id' | 'createdAt'>
-  ) => {
-    const newSavedProposal: SavedProposal = {
-        ...proposalDataToSave,
-        id: Date.now().toString(), 
-        createdAt: new Date().toISOString(),
-    };
-    const updatedProposals = [...savedSimpleProposals, newSavedProposal];
-    
-    setSavedSimpleProposals(updatedProposals);
-    localStorage.setItem(LOCAL_STORAGE_KEY_SIMPLE_SAVE, JSON.stringify(updatedProposals));
-    toast({ title: "Simple Proposal Saved!", description: "Your proposal (text version) is saved in browser storage." });
-  };
+  // Removed handleSaveSimpleProposal function
 
   if (isLoadingPage) {
     return (
@@ -109,7 +86,7 @@ export default function HomePage() {
             isGenerating={isGenerating}
         />
         {/* ProposalDisplay for structured proposal is now on /proposal/view */}
-        {/* If you need to display simple text proposals here again, you might use the old ProposalDisplay component */}
+        {/* SavedProposalsList is removed */}
       </main>
       <Footer />
     </div>

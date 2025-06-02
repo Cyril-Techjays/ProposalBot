@@ -8,36 +8,23 @@ export const proposalFormSchema = z.object({
   teamComposition: z.object({
     frontendDeveloper: z.number().int().min(0).max(10).optional().default(0),
     backendDeveloper: z.number().int().min(0).max(10).optional().default(0),
-    uiUxDesigner: z.number().int().min(0).max(5).optional().default(0), // Changed from boolean
-    qaEngineer: z.number().int().min(0).max(5).optional().default(0), // Changed from boolean
+    uiUxDesigner: z.number().int().min(0).max(5).optional().default(0),
+    qaEngineer: z.number().int().min(0).max(5).optional().default(0),
     businessAnalyst: z.number().int().min(0).max(5).optional().default(0),
-    projectManager: z.number().int().min(0).max(5).optional().default(0), // Changed from boolean
+    projectManager: z.number().int().min(0).max(5).optional().default(0),
   }).default({
     frontendDeveloper: 0,
     backendDeveloper: 0,
-    uiUxDesigner: 0, // Default to 0
-    qaEngineer: 0, // Default to 0
+    uiUxDesigner: 0,
+    qaEngineer: 0,
     businessAnalyst: 0,
-    projectManager: 0, // Default to 0
+    projectManager: 0,
   }),
 });
 
 export type ProposalFormData = z.infer<typeof proposalFormSchema>;
 
-// For saving simple text proposals (current page.tsx functionality)
-export interface SavedProposal extends ProposalFormData {
-  id: string;
-  generatedProposalText: string;
-  createdAt: string;
-  industry?: string;
-  businessObjectives?: string;
-  currentPainPoints?: string;
-  proposedSolution?: string;
-  timeline?: string;
-  budget?: string; // This was for simple save, will be ignored by new structured generation
-  teamSize?: string;
-  techStack?: string;
-}
+// Removed SavedProposal interface as the simple save functionality is being removed.
 
 // New types for structured proposal display
 const ProjectGoalSchema = z.object({
