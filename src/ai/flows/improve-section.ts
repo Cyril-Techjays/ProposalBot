@@ -67,6 +67,7 @@ Please provide ONLY the new, updated content for the "{{{sectionKey}}}" section 
 - If the "Current content of the section" is plain text, provide the updated plain text.
 - Do not add any extra explanations, apologies, or conversational fluff like "Okay, here's the updated content:". Only output the section content itself.
 - Pay close attention to maintaining the correct data type and structure for the section.
+**CRITICAL:** Your response for the updated section content *must* be a single, valid JSON string if the section is structured (like executiveSummary, featureBreakdown, etc.), or plain text if it's a simple text field. Do not include any other text, explanations, or markdown formatting like \`\`\`json ... \`\`\` around the JSON string itself.
 
 Updated "{{{sectionKey}}}" content:
 `,
@@ -84,64 +85,78 @@ const improveSectionFlow = ai.defineFlow(
       throw new Error("AI failed to generate improved section content or returned empty content.");
     }
     
-    // Basic validation for known JSON sections
-    if (input.sectionKey === 'executiveSummary' || 
-        input.sectionKey === 'requirementsAnalysis' || 
-        input.sectionKey === 'featureBreakdown' ||
-        input.sectionKey === 'projectTimelineSection' ||
-        input.sectionKey === 'teamAndResources'
-       ) { 
+    let rawAiOutput = output.improvedSectionContent;
+    let processedContent = rawAiOutput;
+
+    // Attempt to strip markdown code fences if present
+    const jsonMarkdownMatch = rawAiOutput.match(/```json\s*([\s\S]*?)\s*```/s);
+    if (jsonMarkdownMatch && jsonMarkdownMatch[1]) {
+      processedContent = jsonMarkdownMatch[1];
+    }
+    // Trim whitespace that might make JSON.parse fail
+    processedContent = processedContent.trim();
+
+    const isJsonSection = [
+        'executiveSummary', 
+        'requirementsAnalysis', 
+        'featureBreakdown',
+        'projectTimelineSection',
+        'teamAndResources'
+    ].includes(input.sectionKey);
+
+    if (isJsonSection) {
         try {
-            const parsedContent = JSON.parse(output.improvedSectionContent);
-            // Additional check for executiveSummary highlights length
-            if (input.sectionKey === 'executiveSummary' && parsedContent.highlights && parsedContent.highlights.length !== 3) {
-                 console.warn(`AI edited executiveSummary highlights to have ${parsedContent.highlights.length} items. Expected 3.`);
-            }
-             // Check for monetary symbols in executiveSummary highlights' values or summaryText
+            const parsedData = JSON.parse(processedContent); // Validate if it's valid JSON
+
+            // Perform specific validations on parsedData
             if (input.sectionKey === 'executiveSummary') {
-              if (parsedContent.summaryText && /[$\u20AC\u00A3\u00A5\u20B9]/.test(parsedContent.summaryText)) {
-                console.warn("AI included monetary symbol in executiveSummary.summaryText after edit.");
-              }
-              parsedContent.highlights?.forEach((highlight: any) => {
-                if (highlight.value && /[$\u20AC\u00A3\u00A5\u20B9]/.test(highlight.value)) {
-                  console.warn(`AI included monetary symbol in executiveSummary.highlight value "${highlight.value}" after edit.`);
+                if (parsedData.summaryText && /[$\u20AC\u00A3\u00A5\u20B9]/.test(parsedData.summaryText)) {
+                    console.warn("AI included monetary symbol in executiveSummary.summaryText after edit.");
                 }
-              });
-            }
-             // Check featureBreakdown for cost in resourceAllocation or totalHours
-            if (input.sectionKey === 'featureBreakdown' && parsedContent.features) {
-              parsedContent.features.forEach((feature: any) => {
-                if (feature.totalHours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(feature.totalHours)) {
-                  console.warn(`AI included monetary symbol in feature.totalHours "${feature.totalHours}" after edit.`);
-                }
-                feature.resourceAllocation?.forEach((alloc: any) => {
-                  if (alloc.hours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(alloc.hours)) {
-                     console.warn(`AI included monetary symbol in feature.resourceAllocation.hours "${alloc.hours}" for role ${alloc.role} after edit.`);
-                  }
+                parsedData.highlights?.forEach((highlight: any) => {
+                    if (highlight.value && /[$\u20AC\u00A3\u00A5\u20B9]/.test(highlight.value)) {
+                        console.warn(`AI included monetary symbol in executiveSummary.highlight value "${highlight.value}" after edit.`);
+                    }
                 });
-              });
+                if (parsedData.highlights && parsedData.highlights.length !== 3) {
+                    console.warn(`AI edited executiveSummary highlights to have ${parsedData.highlights.length} items. Expected 3.`);
+                }
             }
-            // Check teamAndResources for cost in teamAllocations
-            if (input.sectionKey === 'teamAndResources' && parsedContent.teamAllocations) {
-                parsedContent.teamAllocations.forEach((alloc: any) => {
+            if (input.sectionKey === 'featureBreakdown' && parsedData.features) {
+                parsedData.features.forEach((feature: any) => {
+                    if (feature.totalHours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(feature.totalHours)) {
+                        console.warn(`AI included monetary symbol in feature.totalHours "${feature.totalHours}" after edit.`);
+                    }
+                    feature.resourceAllocation?.forEach((alloc: any) => {
+                        if (alloc.hours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(alloc.hours)) {
+                            console.warn(`AI included monetary symbol in feature.resourceAllocation.hours "${alloc.hours}" for role ${alloc.role} after edit.`);
+                        }
+                    });
+                });
+            }
+            if (input.sectionKey === 'teamAndResources' && parsedData.teamAllocations) {
+                parsedData.teamAllocations.forEach((alloc: any) => {
                     if ((alloc as any).hourlyRate || (alloc as any).totalCost) {
                         console.warn(`AI included cost information in teamAllocations for role ${alloc.roleName} after edit, against instructions.`);
                     }
                     if (alloc.totalHours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(alloc.totalHours)) {
-                         console.warn(`AI included monetary symbol in teamAllocations.totalHours "${alloc.totalHours}" for role ${alloc.roleName} after edit.`);
+                        console.warn(`AI included monetary symbol in teamAllocations.totalHours "${alloc.totalHours}" for role ${alloc.roleName} after edit.`);
                     }
                 });
             }
-
-
         } catch (e) {
-            console.error(`AI returned invalid JSON for ${input.sectionKey}:`, output.improvedSectionContent, e);
-            throw new Error(`AI returned invalid JSON for section ${input.sectionKey}. Please try rephrasing your request, ensuring the AI maintains the required JSON structure and adheres to content rules (e.g., no monetary values).`);
+            console.error(
+              `AI returned invalid JSON for section '${input.sectionKey}'. User prompt: "${input.userPrompt}". Original AI Output: <<<${rawAiOutput}>>> Processed for Parse: <<<${processedContent}>>>`,
+              e
+            );
+            throw new Error(
+              `The AI's response for the '${input.sectionKey}' section was not valid JSON and could not be automatically corrected. Please try rephrasing your request. (AI output snippet: "${rawAiOutput.substring(0, 70)}${rawAiOutput.length > 70 ? '...' : ''}". Full details logged on server).`
+            );
         }
     }
 
     return {
-        improvedSectionContent: output.improvedSectionContent,
+        improvedSectionContent: processedContent, // Return the cleaned/processed content
     };
   }
 );
