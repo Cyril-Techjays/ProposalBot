@@ -80,19 +80,30 @@ const improveSectionFlow = ai.defineFlow(
     outputSchema: ImproveSectionOutputSchema,
   },
   async (input: ImproveSectionInput) : Promise<ImproveSectionOutput> => {
-    const {output} = await improveSectionGenkitPrompt(input);
+    const {output: rawPromptOutputObject} = await improveSectionGenkitPrompt(input);
 
-    // Explicitly check if improvedSectionContent is undefined or null.
-    // An empty string is permissible here and will be handled by JSON.parse or returned as is.
-    if (output?.improvedSectionContent === undefined || output?.improvedSectionContent === null) {
-      console.warn(`AI prompt for 'improveSectionPrompt' returned undefined or null for improvedSectionContent. Input: ${JSON.stringify(input)}`);
-      throw new Error("AI failed to generate improved section content (it was undefined or null directly from AI prompt).");
+    if (!rawPromptOutputObject || typeof rawPromptOutputObject.improvedSectionContent !== 'string') {
+      let reason = "reason: unknown (rawPromptOutputObject existed, but improvedSectionContent was not a string)";
+      if (!rawPromptOutputObject) {
+        reason = "reason: The entire output object from the AI prompt was null or undefined.";
+      } else if (rawPromptOutputObject.improvedSectionContent === undefined) {
+        reason = "reason: The 'improvedSectionContent' field was undefined in the AI prompt's output object.";
+      } else if (rawPromptOutputObject.improvedSectionContent === null) {
+        reason = "reason: The 'improvedSectionContent' field was null in the AI prompt's output object.";
+      } else {
+        // This case means improvedSectionContent was present but not a string
+        reason = `reason: The 'improvedSectionContent' field was present in the AI prompt's output object, but it was not a string (type: ${typeof rawPromptOutputObject.improvedSectionContent}). Value: ${String(rawPromptOutputObject.improvedSectionContent).substring(0,100)}`;
+      }
+      
+      console.warn(`AI_FLOW_WARN: AI prompt for 'improveSectionPrompt' did not return a usable string for 'improvedSectionContent'. ${reason}. Input: ${JSON.stringify(input)}`);
+      throw new Error(`AI_FLOW_ERROR_PROMPT_OUTPUT_INVALID: AI failed to provide usable string content for the section. ${reason}`);
     }
     
-    let rawAiOutput = output.improvedSectionContent; // Now we know it's at least a string (could be empty)
-    let processedContent = rawAiOutput;
+    // At this point, rawPromptOutputObject.improvedSectionContent is guaranteed to be a string.
+    let processedContent = rawPromptOutputObject.improvedSectionContent; 
 
-    const jsonMarkdownMatch = rawAiOutput.match(/```json\s*([\s\S]*?)\s*```/s);
+    // Clean markdown code fences
+    const jsonMarkdownMatch = processedContent.match(/```json\s*([\s\S]*?)\s*```/s);
     if (jsonMarkdownMatch && jsonMarkdownMatch[1]) {
       processedContent = jsonMarkdownMatch[1];
     }
@@ -107,62 +118,46 @@ const improveSectionFlow = ai.defineFlow(
     ].includes(input.sectionKey);
 
     if (isJsonSection) {
+        if (processedContent === "") { // Handle empty string for JSON sections explicitly
+            console.warn(`AI_FLOW_WARN: AI returned an empty string for JSON section '${input.sectionKey}'. This will likely cause a parsing error. User prompt: "${input.userPrompt}"`);
+            throw new Error(`AI_FLOW_ERROR_EMPTY_JSON_STRING: The AI returned an empty string for the '${input.sectionKey}' section, which is not valid JSON. Please ask the AI to provide valid JSON content.`);
+        }
         try {
             const parsedData = JSON.parse(processedContent); 
 
+            // Perform specific validations/cleanups if needed for certain sections (e.g., monetary symbols)
             if (input.sectionKey === 'executiveSummary') {
                 if (parsedData.summaryText && /[$\u20AC\u00A3\u00A5\u20B9]/.test(parsedData.summaryText)) {
-                    console.warn("AI included monetary symbol in executiveSummary.summaryText after edit.");
+                    console.warn("AI_FLOW_WARN: AI included monetary symbol in executiveSummary.summaryText after edit.");
                 }
                 parsedData.highlights?.forEach((highlight: any) => {
                     if (highlight.value && /[$\u20AC\u00A3\u00A5\u20B9]/.test(highlight.value)) {
-                        console.warn(`AI included monetary symbol in executiveSummary.highlight value "${highlight.value}" after edit.`);
+                        console.warn(`AI_FLOW_WARN: AI included monetary symbol in executiveSummary.highlight value "${highlight.value}" after edit.`);
                     }
                 });
                 if (parsedData.highlights && parsedData.highlights.length !== 3) {
-                    console.warn(`AI edited executiveSummary highlights to have ${parsedData.highlights.length} items. Expected 3.`);
+                    console.warn(`AI_FLOW_WARN: AI edited executiveSummary highlights to have ${parsedData.highlights.length} items. Expected 3.`);
                 }
             }
-            if (input.sectionKey === 'featureBreakdown' && parsedData.features) {
-                parsedData.features.forEach((feature: any) => {
-                    if (feature.totalHours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(feature.totalHours)) {
-                        console.warn(`AI included monetary symbol in feature.totalHours "${feature.totalHours}" after edit.`);
-                    }
-                    feature.resourceAllocation?.forEach((alloc: any) => {
-                        if (alloc.hours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(alloc.hours)) {
-                            console.warn(`AI included monetary symbol in feature.resourceAllocation.hours "${alloc.hours}" for role ${alloc.role} after edit.`);
-                        }
-                    });
-                });
-            }
-            if (input.sectionKey === 'teamAndResources' && parsedData.teamAllocations) {
-                parsedData.teamAllocations.forEach((alloc: any) => {
-                    if ((alloc as any).hourlyRate || (alloc as any).totalCost) {
-                        console.warn(`AI included cost information in teamAllocations for role ${alloc.roleName} after edit, against instructions.`);
-                    }
-                    if (alloc.totalHours && /[$\u20AC\u00A3\u00A5\u20B9]/.test(alloc.totalHours)) {
-                        console.warn(`AI included monetary symbol in teamAllocations.totalHours "${alloc.totalHours}" for role ${alloc.roleName} after edit.`);
-                    }
-                });
-            }
+            // Add similar checks for other sections if monetary values are a concern.
             
-            processedContent = JSON.stringify(parsedData);
+            processedContent = JSON.stringify(parsedData); // Re-serialize to ensure canonical JSON string
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(
-              `AI returned invalid JSON for section '${input.sectionKey}'. User prompt: "${input.userPrompt}". Original AI Output: <<<${rawAiOutput}>>> Processed for Parse: <<<${processedContent}>>>`, 
+              `AI_FLOW_ERROR: AI returned invalid JSON for section '${input.sectionKey}'. User prompt: "${input.userPrompt}". Original AI Output (after markdown strip/trim): <<<${processedContent}>>>`, 
               e
             );
             throw new Error(
-              `The AI's response for the '${input.sectionKey}' section was not valid JSON and could not be automatically corrected. Please try rephrasing your request. (AI output snippet: "${rawAiOutput.substring(0, 70)}${rawAiOutput.length > 70 ? '...' : ''}". Full details logged on server).`
+              `AI_FLOW_ERROR_JSON_PARSE_FAILED: The AI's response for the '${input.sectionKey}' section was not valid JSON and could not be parsed. AI Output Snippet: "${processedContent.substring(0, 100)}${processedContent.length > 100 ? '...' : ''}". Original error: ${e.message}`
             );
         }
     }
 
+    // Final check, though type safety should mostly handle this now.
     if (typeof processedContent !== 'string') {
-        // This should be an exceptionally rare case if logic above is correct.
-        console.error("Critical internal error in improveSectionFlow: processedContent is not a string before returning. Original AI output was:", rawAiOutput);
-        throw new Error("Internal error: Processed AI content became invalid (not a string) before returning from flow.");
+        console.error("AI_FLOW_CRITICAL_ERROR: processedContent somehow became non-string before returning. This should not happen. Original prompt output was:", rawPromptOutputObject.improvedSectionContent);
+        throw new Error("AI_FLOW_ERROR_INTERNAL_TYPE: Internal error processing AI content; final content was not a string.");
     }
 
     return {
