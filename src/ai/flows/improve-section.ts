@@ -106,9 +106,10 @@ const improveSectionFlow = ai.defineFlow(
 
     if (isJsonSection) {
         try {
-            const parsedData = JSON.parse(processedContent); // Validate if it's valid JSON
+            // This is the raw string from AI (after cleanup)
+            const parsedData = JSON.parse(processedContent); 
 
-            // Perform specific validations on parsedData
+            // Perform specific validations/warnings on parsedData (does not modify parsedData)
             if (input.sectionKey === 'executiveSummary') {
                 if (parsedData.summaryText && /[$\u20AC\u00A3\u00A5\u20B9]/.test(parsedData.summaryText)) {
                     console.warn("AI included monetary symbol in executiveSummary.summaryText after edit.");
@@ -144,22 +145,26 @@ const improveSectionFlow = ai.defineFlow(
                     }
                 });
             }
-            // Re-stringify the parsed (and validated) data to ensure it's a canonical JSON string for the client
+            
+            // Re-stringify the parsed data to ensure it's a canonical JSON string for the client.
+            // This is the crucial step to prevent client-side parsing issues if the server-side parse was too lenient.
             processedContent = JSON.stringify(parsedData);
 
         } catch (e) {
             console.error(
-              `AI returned invalid JSON for section '${input.sectionKey}'. User prompt: "${input.userPrompt}". Original AI Output: <<<${rawAiOutput}>>> Processed for Parse: <<<${processedContent}>>>`, // Log original processedContent before re-stringify attempt
+              `AI returned invalid JSON for section '${input.sectionKey}'. User prompt: "${input.userPrompt}". Original AI Output: <<<${rawAiOutput}>>> Processed for Parse: <<<${processedContent}>>>`, 
               e
             );
+            // The 'processedContent' logged here is before JSON.stringify if parse failed.
             throw new Error(
               `The AI's response for the '${input.sectionKey}' section was not valid JSON and could not be automatically corrected. Please try rephrasing your request. (AI output snippet: "${rawAiOutput.substring(0, 70)}${rawAiOutput.length > 70 ? '...' : ''}". Full details logged on server).`
             );
         }
     }
 
+    // Return the cleaned/processed (and re-stringified if JSON) content
     return {
-        improvedSectionContent: processedContent, // Return the cleaned/processed (and re-stringified if JSON) content
+        improvedSectionContent: processedContent, 
     };
   }
 );
