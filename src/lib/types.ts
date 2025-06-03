@@ -1,25 +1,9 @@
-
 import { z } from 'zod';
 
 export const proposalFormSchema = z.object({
   companyClientName: z.string().min(1, 'Client Company Name is required.'),
   projectName: z.string().min(1, 'Project Name is required.'),
   basicRequirements: z.string().min(10, 'Basic Requirements must be at least 10 characters.'),
-  teamComposition: z.object({
-    frontendDeveloper: z.number().int().min(0).max(10).optional().default(0),
-    backendDeveloper: z.number().int().min(0).max(10).optional().default(0),
-    uiUxDesigner: z.number().int().min(0).max(5).optional().default(0),
-    qaEngineer: z.number().int().min(0).max(5).optional().default(0),
-    businessAnalyst: z.number().int().min(0).max(5).optional().default(0),
-    projectManager: z.number().int().min(0).max(5).optional().default(0),
-  }).default({
-    frontendDeveloper: 0,
-    backendDeveloper: 0,
-    uiUxDesigner: 0,
-    qaEngineer: 0,
-    businessAnalyst: 0,
-    projectManager: 0,
-  }),
 });
 
 export type ProposalFormData = z.infer<typeof proposalFormSchema>;
@@ -103,27 +87,45 @@ const ProjectTimelineSectionSchema = z.object({
 });
 export type ProjectTimelineSectionData = z.infer<typeof ProjectTimelineSectionSchema>;
 
+// New types for Team Composition Step
+
+export const teamMemberRoles = [
+  'Frontend Developer',
+  'Backend Developer',
+  'Business Analyst',
+  'UI/UX Designer',
+  'QA Engineer',
+  'Project Manager',
+] as const;
+
+export const seniorityLevels = [
+  'Entry Level',
+  'Mid Level',
+  'Senior Level',
+] as const;
+
 // Types for Team & Resources
-const RoleAllocationSchema = z.object({
-  roleName: z.string().describe("Name of the team role (e.g., Frontend Developer)."),
-  totalHours: z.string().describe("Estimated total hours for this role for the project (e.g., '170h')."),
-  duration: z.string().describe("Estimated duration this role will be involved (e.g., '5 weeks')."),
-  utilization: z.string().describe("Estimated utilization percentage for this role (e.g., '85%').")
+// Redefining schema to list individual team members
+const IndividualTeamMemberAllocationSchema = z.object({
+  id: z.string().describe("Unique ID for this generated team member entry."), // Use the ID from input if available, or generate
+  roleName: z.string().describe("Name of the team member's role (e.g., Frontend Developer)."),
+  seniority: z.enum(seniorityLevels).describe("Seniority level of the team member."), // Use the defined seniority levels
+  totalHours: z.string().describe("Estimated total hours for this individual for the project (e.g., '170h')."),
+  duration: z.string().describe("Estimated duration this individual will be involved (e.g., '5 weeks')."),
+  utilization: z.string().describe("Estimated utilization percentage for this individual (e.g., '85%')."),
+  responsibilities: z.array(z.string()).optional().describe("List of key responsibilities for this individual, considering their role and seniority.") 
   // Hourly Rate and Total Cost are intentionally omitted
 });
-export type RoleAllocation = z.infer<typeof RoleAllocationSchema>;
-
-const RoleResponsibilitiesSchema = z.object({
-  roleName: z.string().describe("Name of the team role (e.g., Frontend Developer)."),
-  responsibilities: z.array(z.string()).optional().describe("List of key responsibilities for this role.") 
-});
-export type RoleResponsibilities = z.infer<typeof RoleResponsibilitiesSchema>;
+export type IndividualTeamMemberAllocation = z.infer<typeof IndividualTeamMemberAllocationSchema>;
 
 const TeamAndResourcesSchema = z.object({
-  teamAllocationTitle: z.string().default("Team Allocation & Resource Planning").describe("Title for the team allocation subsection."),
-  teamAllocations: z.array(RoleAllocationSchema).optional().describe("List of resource allocations per role. IMPORTANT: Do NOT include 'Hourly Rate' or 'Total Cost' in the output for any role."),
-  teamStructureTitle: z.string().default("Team Structure & Responsibilities").describe("Title for the team structure subsection."),
-  teamStructure: z.array(RoleResponsibilitiesSchema).optional().describe("List of responsibilities per role.")
+  sectionTitle: z.string().default("Project Team & Resources").describe("Overall title for the team and resources section."), // Changed title key for clarity
+  teamMembers: z.array(IndividualTeamMemberAllocationSchema).optional().describe("List of individual team members with their allocations and responsibilities."),
+  // Removed old teamAllocationTitle, teamAllocations, teamStructureTitle, teamStructure
+  // teamAllocationTitle: z.string().default("Team Allocation & Resource Planning").describe("Title for the team allocation subsection."),
+  // teamAllocations: z.array(RoleAllocationSchema).optional().describe("List of resource allocations per role. IMPORTANT: Do NOT include 'Hourly Rate' or 'Total Cost' in the output for any role."),
+  // teamStructureTitle: z.string().default("Team Structure & Responsibilities").describe("Title for the team structure subsection."),
+  // teamStructure: z.array(RoleResponsibilitiesSchema).optional().describe("List of responsibilities per role.")
 });
 export type TeamAndResources = z.infer<typeof TeamAndResourcesSchema>;
 
@@ -142,7 +144,7 @@ export const StructuredProposalSchema = z.object({
   requirementsAnalysis: RequirementsAnalysisSchema.optional(),
   featureBreakdown: FeatureBreakdownSchema.optional(), 
   projectTimelineSection: ProjectTimelineSectionSchema.optional(),
-  teamAndResources: TeamAndResourcesSchema.optional(),
+  teamAndResources: TeamAndResourcesSchema.optional(), // This will now contain the list of individuals
 });
 export type StructuredProposal = z.infer<typeof StructuredProposalSchema>;
 
@@ -153,4 +155,23 @@ export type ProposalSectionKey =
   | 'featureBreakdown' 
   | 'projectTimelineSection' 
   | 'teamAndResources';
+
+export const TeamMemberSchema = z.object({
+  id: z.string().uuid().describe("Unique ID for the team member."),
+  role: z.enum(teamMemberRoles).describe("The role of the team member."),
+  seniority: z.enum(seniorityLevels).describe("The seniority level of the team member."),
+});
+
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+export const TeamCompositionDataSchema = z.array(TeamMemberSchema).optional().default([]);
+
+export type TeamCompositionData = z.infer<typeof TeamCompositionDataSchema>;
+
+// Update main form schema to include new team composition data
+export const multiStepProposalFormSchema = proposalFormSchema.extend({
+  teamCompositionData: TeamCompositionDataSchema,
+});
+
+export type MultiStepProposalFormData = z.infer<typeof multiStepProposalFormSchema>;
 

@@ -1,45 +1,19 @@
-
 // src/app/actions.ts
 "use server";
 
 import { generateProposal as genkitGenerateProposal, GenerateProposalInput } from "@/ai/flows/generate-proposal";
 import { improveSection as genkitImproveSection, ImproveSectionInput, ImproveSectionOutput } from "@/ai/flows/improve-section";
-import type { ProposalFormData, StructuredProposal } from "@/lib/types";
+import type { ProposalFormData, StructuredProposal, MultiStepProposalFormData } from "@/lib/types";
 
 export async function handleGenerateProposalAction(
-  data: ProposalFormData
+  data: MultiStepProposalFormData
 ): Promise<{ proposal?: StructuredProposal; error?: string }> {
   try {
-    const teamParts: string[] = [];
-    const teamCompositionData = data.teamComposition;
-
-    if (teamCompositionData) {
-      if (teamCompositionData.frontendDeveloper && teamCompositionData.frontendDeveloper > 0) {
-        teamParts.push(`${teamCompositionData.frontendDeveloper} Frontend Developer${teamCompositionData.frontendDeveloper > 1 ? 's' : ''}`);
-      }
-      if (teamCompositionData.backendDeveloper && teamCompositionData.backendDeveloper > 0) {
-        teamParts.push(`${teamCompositionData.backendDeveloper} Backend Developer${teamCompositionData.backendDeveloper > 1 ? 's' : ''}`);
-      }
-      if (teamCompositionData.businessAnalyst && teamCompositionData.businessAnalyst > 0) {
-        teamParts.push(`${teamCompositionData.businessAnalyst} Business Analyst${teamCompositionData.businessAnalyst > 1 ? 's' : ''}`);
-      }
-      if (teamCompositionData.uiUxDesigner && teamCompositionData.uiUxDesigner > 0) {
-        teamParts.push(`${teamCompositionData.uiUxDesigner} UI/UX Designer${teamCompositionData.uiUxDesigner > 1 ? 's' : ''}`);
-      }
-      if (teamCompositionData.qaEngineer && teamCompositionData.qaEngineer > 0) {
-        teamParts.push(`${teamCompositionData.qaEngineer} QA Engineer${teamCompositionData.qaEngineer > 1 ? 's' : ''}`);
-      }
-      if (teamCompositionData.projectManager && teamCompositionData.projectManager > 0) {
-        teamParts.push(`${teamCompositionData.projectManager} Project Manager${teamCompositionData.projectManager > 1 ? 's' : ''}`);
-      }
-    }
-    const finalTeamCompositionString = teamParts.join(', ');
-
     const input: GenerateProposalInput = {
       companyClientName: data.companyClientName,
       projectName: data.projectName,
       basicRequirements: data.basicRequirements,
-      teamComposition: finalTeamCompositionString || undefined,
+      teamComposition: JSON.stringify(data.teamCompositionData),
     };
     const result = await genkitGenerateProposal(input);
     return { proposal: result };
@@ -68,11 +42,11 @@ export async function handleImproveSectionAction(
     const result: ImproveSectionOutput = await genkitImproveSection(input);
     
     // This check remains as a final safeguard, though the flow should ideally throw an error before this.
-     if (result.improvedContent === undefined || result.improvedContent === null) {
-        console.warn("ACTION_WARN: genkitImproveSection (AI flow) returned successfully but 'improvedContent' was undefined or null. This is highly unexpected as the flow should throw an error if content is not a string. Input:", input);
+     if (result.improvedSectionContent === undefined || result.improvedSectionContent === null) {
+        console.warn("ACTION_WARN: genkitImproveSection (AI flow) returned successfully but 'improvedSectionContent' was undefined or null. This is highly unexpected as the flow should throw an error if content is not a string. Input:", input);
         return { error: "AI Edit Error: The AI flow completed but returned an empty or invalid content structure unexpectedly. Please try again or check server logs." };
     }
-    return { improvedContent: result.improvedContent };
+    return { improvedContent: result.improvedSectionContent };
   } catch (error) {
     console.error("ACTION_ERROR: Error improving section with AI:", error);
     // Default error message

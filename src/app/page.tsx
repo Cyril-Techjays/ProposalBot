@@ -1,19 +1,27 @@
-
 "use client";
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Footer } from '@/components/Footer';
 import { ProposalForm } from '@/components/ProposalForm';
+import { TeamCompositionStep } from '@/components/TeamCompositionStep';
 // ProposalDisplay is not used directly on this page anymore for the main generated proposal
 // SavedProposalsList is also removed as part of simplifying to structured proposals
-import type { ProposalFormData, StructuredProposal } from '@/lib/types';
+import type { StructuredProposal, MultiStepProposalFormData } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { handleGenerateProposalAction } from './actions';
 
 // Removed LOCAL_STORAGE_KEY_SIMPLE_SAVE
 const SESSION_STORAGE_KEY_CURRENT_PROPOSAL = 'currentGeneratedProposalData';
+
+// Define initial state for multi-step form data
+const initialFormData: MultiStepProposalFormData = {
+  companyClientName: "",
+  projectName: "",
+  basicRequirements: "",
+  teamCompositionData: [],
+};
 
 export default function HomePage() {
   const router = useRouter();
@@ -24,14 +32,35 @@ export default function HomePage() {
   // const [savedSimpleProposals, setSavedSimpleProposals] = useState<SavedProposal[]>([]);
   const [isLoadingPage, setIsLoadingPage] = useState(true); // Keep for initial page load visual
   
+  // State for managing the current step
+  const [currentStep, setCurrentStep] = useState(1); // Start at step 1
+  // State for storing form data across steps
+  const [formData, setFormData] = useState<MultiStepProposalFormData>(initialFormData);
+
+  
   useEffect(() => {
     // Minimal effect, can be expanded if other async setup is needed
     setIsLoadingPage(false); 
   }, []);
 
-  const handleProposalFormSubmit = (formData: ProposalFormData) => {
+  // Handle submission of the first step (basic info)
+  const handleNextStep = (data: MultiStepProposalFormData) => {
+    setFormData(data); // Save data from step 1
+    setCurrentStep(2); // Move to step 2
+  };
+
+  // Handle going back from the second step
+  const handlePreviousStep = (data: MultiStepProposalFormData) => {
+     // Optionally save current data before going back if needed
+     setFormData(data); // Save current state of step 2 form
+     setCurrentStep(1); // Move back to step 1
+  };
+
+  // Handle submission of the final step (team composition) and trigger generation
+  const handleGenerateProposal = (data: MultiStepProposalFormData) => {
+    // This function will now be called from TeamCompositionStep with complete data
     startGeneratingTransition(async () => {
-      const result = await handleGenerateProposalAction(formData);
+      const result = await handleGenerateProposalAction(data); // Pass complete data
       if (result.proposal) {
         try {
           sessionStorage.setItem(SESSION_STORAGE_KEY_CURRENT_PROPOSAL, JSON.stringify(result.proposal));
@@ -81,10 +110,24 @@ export default function HomePage() {
           </p>
         </div>
 
-        <ProposalForm 
-            onGenerate={handleProposalFormSubmit} 
-            isGenerating={isGenerating}
-        />
+        {/* Conditionally render steps */}
+        {currentStep === 1 && (
+          <ProposalForm 
+            onNext={handleNextStep} // Pass the next step handler
+            initialData={formData} // Pass current form data (useful for going back)
+            isGenerating={isGenerating} // Keep generating state for now, might be used differently later
+          />
+        )}
+
+        {currentStep === 2 && (
+          <TeamCompositionStep
+             initialData={formData} // Pass data from step 1 and potentially previous team composition
+             onGenerate={handleGenerateProposal} // Pass the generate handler
+             onPrevious={handlePreviousStep} // Pass the previous step handler
+             isGenerating={isGenerating}
+          />
+        )}
+
         {/* ProposalDisplay for structured proposal is now on /proposal/view */}
         {/* SavedProposalsList is removed */}
       </main>
