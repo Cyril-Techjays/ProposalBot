@@ -10,10 +10,10 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z}
-from 'genkit';
+import {z} from 'genkit';
 import type { ProposalFormData } from '@/lib/types'; // For input mapping
 import { StructuredProposalSchema, type StructuredProposal, type TeamMember } from '@/lib/types';
+import { processProposalGeneration, type SeniorityLevel } from '../aiRules';
 
 // Input schema remains the same as what ProposalForm provides
 const GenerateProposalInputSchema = z.object({
@@ -21,6 +21,8 @@ const GenerateProposalInputSchema = z.object({
   projectName: z.string().describe('The name of the project.'),
   basicRequirements: z.string().describe('The basic requirements of the project, including features, target audience, etc.'),
   teamComposition: z.string().optional().describe('A comma-separated list of team roles required for the project (e.g., Frontend Developer, UI/UX Designer).'),
+  processedFeatures: z.string().optional().describe('The processed features from the AI rules.'),
+  estimatedTimeline: z.string().optional().describe('The estimated timeline from the AI rules.'),
 });
 
 export type GenerateProposalInput = z.infer<typeof GenerateProposalInputSchema>;
@@ -35,7 +37,7 @@ export async function generateProposal(input: GenerateProposalInput): Promise<Ge
 const generateProposalPrompt = ai.definePrompt({
   name: 'generateStructuredProposalPrompt',
   input: {schema: GenerateProposalInputSchema},
-  output: {schema: StructuredProposalSchema}, // Use the new structured schema
+  output: {schema: StructuredProposalSchema},
   prompt: `You are an expert business proposal writer. Based on the information provided, generate a comprehensive and persuasive business proposal in a structured format.
 **IMPORTANT RULE: Under no circumstances should any monetary values, costs, prices, or budgets be included in any part of the proposal. All estimates should be in terms of time (hours, weeks, months) or resource allocation (number of people, roles).**
 
@@ -45,10 +47,19 @@ Basic Requirements: {{{basicRequirements}}}
 
 Team Composition (JSON String): {{{teamComposition}}}
 
+Processed Features (JSON String): {{{processedFeatures}}}
+Estimated Timeline: {{{estimatedTimeline}}}
+
 **Instructions for Team Composition:**
 - The 'Team Composition' input is a JSON string representing an array of team member objects. Each object has two fields: 'role' (string, e.g., "Frontend Developer") and 'seniority' (string, one of "Entry Level", "Mid Level", "Senior Level").
 - **Crucially, parse this JSON string internally** to understand the exact list of team members and their seniority.
 - Use this parsed list to accurately determine the total number of team members for summary badges and highlights.
+
+**Instructions for Processed Features:**
+- The 'Processed Features' input is a JSON string containing the validated features and tasks breakdown.
+- Use these features to populate the featureBreakdown section of the proposal.
+- Ensure all features and tasks are properly validated and required.
+- Use the estimated hours from the tasks to calculate timelines and resource allocation.
 
 **Instructions for Team & Resources Section:**
 - When generating the 'teamAndResources' section in the output JSON, you must create an entry in the 'teamMembers' array for *each individual team member* present in the parsed 'Team Composition' input list.
@@ -66,16 +77,16 @@ Please provide the output in the following JSON structure. Ensure all fields are
 2.  **clientName**: Use "{{{companyClientName}}}".
 3.  **projectType**: Infer from basic requirements (e.g., "Web Application", "Mobile App Development", "AI Integration Project").
 4.  **summaryBadges**: Create exactly **2** badges:
-    *   One for an estimated timeline (e.g., "2-3 months", icon: "Clock"). Infer a realistic timeline based on project scope and the detailed team composition/seniority.
+    *   One for an estimated timeline (use the provided estimatedTimeline), icon: "Clock".
     *   One for team members (e.g., "5 team members", icon: "Users2"). **Calculate the total number of team members directly from the provided 'Team Composition' JSON array.**
     *   **DO NOT create a budget badge or any badge with monetary values.**
 5.  **executiveSummary**:
     *   **summaryText**: A concise overview (50-100 words) of the project, its purpose, and key outcomes. **Do not mention budget or cost.**
     *   **highlights**: Exactly 3 highlight items:
-        *   Item 1: Label "Timeline", Value (estimated timeline, e.g., "2-3 months"), colorName: "green".
-        *   Item 2: Label "Total Hours", Value (estimated total hours, e.g., "150-200h"). Estimate based on project scope and the detailed team composition/seniority. **No monetary value.**
-        *   Item 3: Label "Team Size", Value (number of team members, e.g., "2 members"). **Calculate the total number of team members directly from the provided 'Team Composition' JSON array.**
-    *   **projectGoals**: 2 to 5 project goals. Each goal needs an \`id\` (e.g., "goal-1"), \`title\`, and \`description\`.
+        *   Item 1: Label "Timeline", Value (use the provided estimatedTimeline), colorName: "green".
+        *   Item 2: Label "Total Hours", Value (calculated from processedFeatures), colorName: "blue".
+        *   Item 3: Label "Team Size", Value (number of team members), colorName: "purple".
+    *   **projectGoals**: 2 to 5 project goals. Each goal needs an id, title, and description.
 6.  **requirementsAnalysis**:
     *   **projectRequirementsOverview**: A concise overview of the project requirements based on the provided 'Basic Requirements'. This should be 1-2 paragraphs.
     *   **functionalRequirements**: A list of 3 to 7 key functional requirements derived from the 'Basic Requirements'.
@@ -83,43 +94,41 @@ Please provide the output in the following JSON structure. Ensure all fields are
 7.  **featureBreakdown**:
     *   **title**: "Detailed Feature Breakdown"
     *   **subtitle**: "Complete analysis of all features with time estimates. Cost information is omitted."
-    *   **features**: Generate 2 to 4 feature items. For each feature item:
+    *   **features**: Use the features from processedFeatures. For each feature item:
         *   **id**: A unique string ID (e.g., "feat-auth", "feat-dashboard").
-        *   **title**: A descriptive title for the feature (e.g., "User Authentication & Authorization", "Interactive Dashboard & Analytics").
-        *   **description**: A short summary of the feature (e.g., "Secure user registration, login, role-based access control, and session management.").
-        *   **totalHours**: An estimated total time for this feature in hours (e.g., "72 hours", "40-50 hours"). **DO NOT include cost.** Estimate based on the feature complexity and the detailed team composition/seniority.
-        *   **tags**: (Optional) 1-2 tags. Each tag needs \`text\` (e.g., "High Priority", "Core Security") and \`colorScheme\` (e.g., "red", "blue", "gray", "green", "yellow", "indigo", "purple", "pink").
-        *   **functionalFeatures**: (Optional) A list of 2-5 specific functional sub-features or points related to this main feature.
+        *   **title**: A descriptive title for the feature.
+        *   **description**: A short summary of the feature.
+        *   **totalHours**: Use the estimated hours from the processed features.
+        *   **tags**: (Optional) 1-2 tags. Each tag needs \`text\` and \`colorScheme\`.
+        *   **functionalFeatures**: (Optional) A list of 2-5 specific functional sub-features or points.
         *   **nonFunctionalRequirements**: (Optional) A list of 1-4 non-functional requirements specific to this feature.
-        *   **resourceAllocation**: (Optional) For *each* unique role present in the 'Team Composition' JSON input, list an estimated time allocation for *this specific feature*, considering the number of individuals and their seniority. Each item needs \`role\` (e.g., "Frontend Developer") and \`hours\` (e.g., "30h for this feature"). The sum of hours for all roles on this feature should be reasonably aligned with the feature's \`totalHours\`. If a role from the team is not directly involved in this specific feature, you can omit it or assign a very small token amount of hours (e.g., "2h for consultation"). **DO NOT include cost.**
+        *   **resourceAllocation**: (Optional) For *each* unique role present in the 'Team Composition' JSON input, list an estimated time allocation for *this specific feature*.
 8.  **projectTimelineSection**:
-    *   **title**: "Project Timeline & Phases" (or similar appropriate title).
-    *   **phases**: Generate 3 to 5 project phases. For each phase:
+    *   **title**: "Project Timeline & Phases"
+    *   **phases**: Generate 3 to 5 project phases based on the processed features and timeline.
         *   **id**: A unique string ID (e.g., "phase-discovery", "phase-design").
-        *   **title**: A descriptive title for the phase (e.g., "Discovery & Requirements Analysis", "Design & Architecture", "Development Phase 1 (MVP)").
-        *   **description**: A short summary of the activities in this phase (e.g., "Stakeholder interviews, requirement gathering, technical analysis, project scope definition.").
-        *   **duration**: An estimated duration for this phase (e.g., "2-3 weeks", "1 month"). Estimate based on project scope and the detailed team composition/seniority.
-        *   **percentageOfProject**: (Optional) An estimated percentage of the total project effort or duration this phase represents (e.g., "15% of project", "20% of project effort"). **This is NOT about cost.**
-        *   **keyDeliverables**: A list of 2-5 key deliverables for this phase (e.g., "Requirements Document", "UI/UX Mockups", "Deployed MVP").
+        *   **title**: A descriptive title for the phase.
+        *   **description**: A short summary of the activities in this phase.
+        *   **duration**: An estimated duration for this phase based on the processed features.
+        *   **percentageOfProject**: (Optional) An estimated percentage of the total project effort or duration this phase represents.
+        *   **keyDeliverables**: A list of 2-5 key deliverables for this phase.
 9.  **teamAndResources**:
-    *   **sectionTitle**: "Project Team & Resources". // Updated title key
-    *   **teamMembers**: An array. For *each individual team member object* in the parsed 'Team Composition' JSON array, create a corresponding object in this 'teamMembers' array.
-        *   Each object in 'teamMembers' must have the following fields:
-            *   **id**: A unique string ID for this entry. You can use the original ID from the input team member object.
-            *   **roleName**: Copy the 'role' value from the input team member object.
-            *   **seniority**: Copy the 'seniority' value from the input team member object.
-            *   **totalHours**: Generate a realistic estimate of total hours for this *individual*, considering their role and seniority and the overall project scope. **No monetary value.**
-            *   **duration**: Generate a realistic estimate of the duration this *individual* will be involved. **No monetary value.**
-            *   **utilization**: Generate a realistic estimate of the utilization percentage for this *individual*. **No monetary value.**
-            *   **responsibilities**: Generate a list of 2-5 key responsibilities for this *individual*, tailored to their role and seniority.
-        *   **Ensure the 'teamMembers' array in your output contains one entry for every individual team member provided in the 'Team Composition' input JSON string.**
+    *   **sectionTitle**: "Project Team & Resources"
+    *   **teamMembers**: An array of team member objects based on the Team Composition input.
+        *   Each object must have:
+            *   **id**: A unique string ID.
+            *   **roleName**: The role from the Team Composition input.
+            *   **seniority**: The seniority level from the Team Composition input.
+            *   **totalHours**: Estimated hours based on the processed features and seniority level.
+            *   **duration**: Estimated duration based on the processed features and seniority level.
+            *   **utilization**: Estimated utilization percentage.
+            *   **responsibilities**: A list of 2-5 key responsibilities.
 
 Ensure all text content is well-written, professional, and tailored to the input.
-The \`summaryText\` for the executive summary should incorporate the client name, project name, project type, timeline, and team size information naturally. **Do not mention budget or cost.**
-For numerical values like hours, provide reasonable estimates based on project scope and the detailed team composition/seniority.
+For numerical values like hours, use the estimates from the processed features.
 The projectType should be a concise phrase.
 The team members count for the summary badge and highlights should be the exact count of items in the parsed 'Team Composition' JSON array.
-Total hours highlight should be a range like "150-200h" or a single figure like "170h", estimated based on project scope and the detailed team composition/seniority.
+Total hours highlight should be calculated from the processed features.
 The functional and non-functional requirements should be clear, distinct points.
 `,
 });
@@ -131,61 +140,68 @@ const generateProposalFlow = ai.defineFlow(
     outputSchema: StructuredProposalSchema,
   },
   async (input: GenerateProposalInput) : Promise<StructuredProposal> => {
-    const {output} = await generateProposalPrompt(input);
-    
-    // Add logging for the raw AI output
-    console.log("Raw AI Output:", JSON.stringify(output, null, 2));
+    // Parse team composition to get seniority levels
+    let teamCompositionData: TeamMember[] = [];
+    if (input.teamComposition) {
+      try {
+        const parsed = JSON.parse(input.teamComposition);
+        if (Array.isArray(parsed)) {
+          teamCompositionData = parsed.filter(item => 
+            item && typeof item === 'object' 
+            && typeof item.role === 'string' 
+            && typeof item.seniority === 'string'
+          ) as TeamMember[];
+        }
+      } catch (e) {
+        console.error("Error parsing teamComposition JSON string:", e);
+      }
+    }
+
+    // Process the proposal using our AI rules
+    const { features, timeline } = await processProposalGeneration(
+      input.basicRequirements,
+      teamCompositionData[0]?.seniority.toLowerCase() as SeniorityLevel || 'mid'
+    );
+
+    // Generate the proposal using the AI
+    const {output} = await generateProposalPrompt({
+      ...input,
+      // Add the processed features and timeline to the prompt
+      processedFeatures: JSON.stringify(features),
+      estimatedTimeline: timeline.toString(),
+    });
 
     if (!output) {
       throw new Error("AI failed to generate a structured proposal.");
     }
-    
-    // Parse the teamComposition JSON string
-    let teamCompositionData: TeamMember[] = [];
-    if (input.teamComposition) {
-      try {
-        // Ensure the parsed data is treated as an array of TeamMember
-        const parsed = JSON.parse(input.teamComposition);
-        if (Array.isArray(parsed)) {
-             // Basic structural check - refine if necessary
-            teamCompositionData = parsed.filter(item => 
-                 item && typeof item === 'object' 
-                 && typeof item.role === 'string' 
-                 && typeof item.seniority === 'string'
-            ) as TeamMember[];
-        }
-      } catch (e) {
-        console.error("Error parsing teamComposition JSON string:", e);
-        // Decide how to handle parsing errors - maybe proceed with empty team data or throw error
-        // For now, we'll just log and proceed with empty data
-      }
+
+    // Add logging for the raw AI output
+    console.log("Raw AI Output:", JSON.stringify(output, null, 2));
+
+    // Basic validation checks based on prompt guidance
+    if (output.summaryBadges?.length && output.summaryBadges?.length !== 2) {
+      console.warn("AI generated a number of summary badges different from prompt guidance. Expected 2, got:", output.summaryBadges?.length);
     }
 
-    // Basic validation checks based on prompt guidance (not strict schema anymore)
-    if (output.summaryBadges?.length && output.summaryBadges?.length !== 2) { // Expect 2 badges
-        console.warn("AI generated a number of summary badges different from prompt guidance. Expected 2, got:", output.summaryBadges?.length);
-    }
-     // Check for dollar signs or known currency symbols in summary badge text
+    // Check for dollar signs or known currency symbols in summary badge text
     output.summaryBadges?.forEach(badge => {
-        if (/[$\u20AC\u00A3\u00A5\u20B9]/.test(badge.text)) { // $, €, £, ¥, ₹
-            console.warn(`AI included monetary symbol in summary badge: "${badge.text}" against instructions.`);
-            // Potentially modify or remove the badge here if strict adherence is critical
-        }
+      if (/[$\u20AC\u00A3\u00A5\u20B9]/.test(badge.text)) {
+        console.warn(`AI included monetary symbol in summary badge: "${badge.text}" against instructions.`);
+      }
     });
 
-    if (output.executiveSummary?.highlights?.length && output.executiveSummary?.highlights?.length !== 3) { 
-        console.warn("AI generated a number of highlights different from prompt guidance. Expected 3, got:", output.executiveSummary?.highlights?.length);
+    if (output.executiveSummary?.highlights?.length && output.executiveSummary?.highlights?.length !== 3) {
+      console.warn("AI generated a number of highlights different from prompt guidance. Expected 3, got:", output.executiveSummary?.highlights?.length);
     }
-    
-    // Now using the parsed teamCompositionData array for validation reference
-     if (teamCompositionData.length > 0 && output.teamAndResources) {
-        if (!output.teamAndResources.teamMembers || output.teamAndResources.teamMembers.length === 0) {
-             console.warn("AI did not generate team members despite team composition input.");
-        }
-     } else if (teamCompositionData.length === 0 && output.teamAndResources && (output.teamAndResources.teamMembers && output.teamAndResources.teamMembers.length > 0)) {
-          console.warn("AI generated team members sections despite no team composition input.");
-     }
 
+    // Validate team members section
+    if (teamCompositionData.length > 0 && output.teamAndResources) {
+      if (!output.teamAndResources.teamMembers || output.teamAndResources.teamMembers.length === 0) {
+        console.warn("AI did not generate team members despite team composition input.");
+      }
+    } else if (teamCompositionData.length === 0 && output.teamAndResources && (output.teamAndResources.teamMembers && output.teamAndResources.teamMembers.length > 0)) {
+      console.warn("AI generated team members sections despite no team composition input.");
+    }
 
     return output;
   }
